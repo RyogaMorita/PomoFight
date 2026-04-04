@@ -1,14 +1,52 @@
-import { View, Text, StyleSheet } from 'react-native'
+import { useState } from 'react'
+import GoalScreen from '../../components/battle/GoalScreen'
+import MatchingScreen from '../../components/battle/MatchingScreen'
+import FightScreen from '../../components/battle/FightScreen'
+import FinishScreen from '../../components/battle/FinishScreen'
 
-export default function BattleScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.text}>⚔️ バトル画面（実装予定）</Text>
-    </View>
-  )
+// バトルの状態管理
+// goal → matching → fighting → finish
+
+export default function BattleTab() {
+  const [phase, setPhase] = useState('goal') // goal | matching | fighting | finish
+  const [goal, setGoal] = useState('')
+  const [room, setRoom] = useState(null)
+  const [result, setResult] = useState(null) // win | lose
+
+  if (phase === 'goal') {
+    return (
+      <GoalScreen
+        onStart={(g) => { setGoal(g); setPhase('matching') }}
+      />
+    )
+  }
+
+  if (phase === 'matching') {
+    return (
+      <MatchingScreen
+        goal={goal}
+        onMatched={(room) => { setRoom(room); setPhase('fighting') }}
+        onCancel={() => setPhase('goal')}
+      />
+    )
+  }
+
+  if (phase === 'fighting') {
+    return (
+      <FightScreen
+        room={room}
+        goal={goal}
+        onFinish={(result) => { setResult(result); setPhase('finish') }}
+      />
+    )
+  }
+
+  if (phase === 'finish') {
+    return (
+      <FinishScreen
+        result={result}
+        onBack={() => { setPhase('goal'); setRoom(null); setResult(null) }}
+      />
+    )
+  }
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a1a2e', alignItems: 'center', justifyContent: 'center' },
-  text: { color: '#fff', fontSize: 18 },
-})
