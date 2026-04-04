@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  View, Text, StyleSheet, AppState, Alert, TouchableOpacity
+  View, Text, StyleSheet, AppState, Alert, TouchableOpacity,
+  TextInput, KeyboardAvoidingView, Platform, ActivityIndicator
 } from 'react-native'
 import { Accelerometer } from 'expo-sensors'
 import { supabase } from '../../lib/supabase'
@@ -186,49 +187,87 @@ export default function FightScreen({ room, goal, onFinish }) {
   )
 }
 
+const FOCUS_SCORES = [
+  { score: 1, label: '😵', desc: '全然ダメ' },
+  { score: 2, label: '😕', desc: 'いまいち' },
+  { score: 3, label: '😐', desc: 'まあまあ' },
+  { score: 4, label: '😊', desc: '集中できた' },
+  { score: 5, label: '🔥', desc: '完璧' },
+]
+
 function LogInput({ room, goal, onFinish, session }) {
   const [log, setLog] = useState('')
+  const [focusScore, setFocusScore] = useState(null)
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit() {
+    if (!focusScore) return
     setLoading(true)
-    await supabase.from('pomodoro_logs').insert({
-      user_id: session.user.id,
-      room_id: room.id,
-      log_text: log || goal,
-      focus_score: 5,
-      duration_minutes: 25,
-    })
-    // ポモドーロ数を更新
-    await supabase.rpc('increment_pomodoro', { user_id: session.user.id })
+    if (!room.isTest) {
+      await supabase.from('pomodoro_logs').insert({
+        user_id: session.user.id,
+        room_id: room.id,
+        log_text: log.trim() || goal,
+        focus_score: focusScore,
+        duration_minutes: 25,
+      })
+      await supabase.rpc('increment_pomodoro', { user_id: session.user.id })
+    }
     setLoading(false)
     onFinish('win')
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <Text style={styles.bigEmoji}>🌳</Text>
       <Text style={styles.title}>ポモドーロ完了！</Text>
       <Text style={styles.sub}>25分間お疲れさまでした</Text>
 
+      {/* 一言ログ */}
       <View style={styles.logBox}>
         <Text style={styles.logLabel}>今回やったことを一言</Text>
-        <View style={styles.logInputWrap}>
-          <Text
-            style={styles.logInput}
-            onPress={() => {}}
-          >{goal}</Text>
+        <TextInput
+          style={styles.logInput}
+          placeholder={goal}
+          placeholderTextColor="#555"
+          value={log}
+          onChangeText={setLog}
+          maxLength={50}
+          autoFocus
+        />
+      </View>
+
+      {/* 集中度 */}
+      <View style={styles.logBox}>
+        <Text style={styles.logLabel}>集中度は？</Text>
+        <View style={styles.scoreRow}>
+          {FOCUS_SCORES.map(({ score, label, desc }) => (
+            <TouchableOpacity
+              key={score}
+              style={[styles.scoreItem, focusScore === score && styles.scoreItemActive]}
+              onPress={() => setFocusScore(score)}
+            >
+              <Text style={styles.scoreEmoji}>{label}</Text>
+              <Text style={styles.scoreDesc}>{desc}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
 
       <TouchableOpacity
-        style={styles.button}
+        style={[styles.button, (!focusScore || loading) && styles.buttonDisabled]}
         onPress={handleSubmit}
-        disabled={loading}
+        disabled={!focusScore || loading}
       >
-        <Text style={styles.buttonText}>完了して次へ</Text>
+        {loading
+          ? <ActivityIndicator color="#fff" />
+          : <Text style={styles.buttonText}>完了 🌳</Text>
+        }
       </TouchableOpacity>
-    </View>
+    </KeyboardAvoidingView>
   )
 }
 
@@ -269,16 +308,27 @@ const styles = StyleSheet.create({
   loseButton: { paddingVertical: 12, paddingHorizontal: 32 },
   loseText: { color: '#666', fontSize: 14 },
 
-  logBox: { width: '100%', marginBottom: 24 },
+  logBox: { width: '100%', marginBottom: 20 },
   logLabel: { fontSize: 14, color: '#aaa', marginBottom: 8 },
-  logInputWrap: {
+  logInput: {
     backgroundColor: '#2a2a4a', borderRadius: 12, padding: 16,
+    color: '#fff', fontSize: 16,
   },
-  logInput: { color: '#fff', fontSize: 16 },
+
+  scoreRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 6 },
+  scoreItem: {
+    flex: 1, alignItems: 'center', paddingVertical: 10,
+    backgroundColor: '#2a2a4a', borderRadius: 12,
+    borderWidth: 2, borderColor: 'transparent',
+  },
+  scoreItemActive: { borderColor: '#4CAF50', backgroundColor: '#1a3a1a' },
+  scoreEmoji: { fontSize: 22 },
+  scoreDesc: { fontSize: 9, color: '#aaa', marginTop: 2 },
 
   button: {
     width: '100%', backgroundColor: '#4CAF50',
     borderRadius: 12, padding: 18, alignItems: 'center',
   },
+  buttonDisabled: { opacity: 0.4 },
   buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 })
