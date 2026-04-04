@@ -46,6 +46,7 @@ export default function BattleTab() {
     return (
       <FinishScreen
         result={result}
+        room={room}
         onBack={() => { setPhase('goal'); setRoom(null); setResult(null) }}
       />
     )

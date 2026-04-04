@@ -1,6 +1,8 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native'
+import { useState } from 'react'
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useAuth } from '../../context/AuthContext'
+import RankingModal from '../../components/RankingModal'
 
 // 木のレベルに応じた表示（画像できたら差し替え）
 function TreeDisplay({ level }) {
@@ -28,6 +30,7 @@ function StatBadge({ label, value }) {
 export default function HomeScreen() {
   const { profile } = useAuth()
   const router = useRouter()
+  const [showRanking, setShowRanking] = useState(false)
 
   const treeLevel = Math.floor((profile?.total_pomodoros ?? 0) / 5)
   const wins = profile?.wins ?? 0
@@ -35,6 +38,7 @@ export default function HomeScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <RankingModal visible={showRanking} onClose={() => setShowRanking(false)} />
 
       {/* ヘッダー */}
       <View style={styles.header}>
@@ -42,9 +46,14 @@ export default function HomeScreen() {
           <Text style={styles.username}>{profile?.username ?? '---'}</Text>
           <Text style={styles.rankText}>🏆 Rank {profile?.rank ?? 0}</Text>
         </View>
-        <View style={styles.pomodoroCount}>
-          <Text style={styles.pomodoroNum}>{profile?.total_pomodoros ?? 0}</Text>
-          <Text style={styles.pomodoroLabel}>🍅 合計</Text>
+        <View style={{ alignItems: 'flex-end', gap: 8 }}>
+          <View style={styles.pomodoroCount}>
+            <Text style={styles.pomodoroNum}>{profile?.total_pomodoros ?? 0}</Text>
+            <Text style={styles.pomodoroLabel}>🍅 合計</Text>
+          </View>
+          <TouchableOpacity onPress={() => setShowRanking(true)}>
+            <Text style={styles.rankingBtn}>🌍 ランキング</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -95,6 +104,7 @@ const styles = StyleSheet.create({
   pomodoroCount: { alignItems: 'center' },
   pomodoroNum: { fontSize: 28, fontWeight: 'bold', color: '#ff6b6b' },
   pomodoroLabel: { fontSize: 12, color: '#aaa' },
+  rankingBtn: { fontSize: 13, color: '#4CAF50' },
 
   treeContainer: { alignItems: 'center', marginVertical: 32 },
   treeEmoji: { fontSize: 120 },
