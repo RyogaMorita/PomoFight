@@ -17,6 +17,7 @@ export default function BattleTab() {
     return (
       <GoalScreen
         onStart={(g) => { setGoal(g); setPhase('matching') }}
+        onTestStart={(g, testRoom) => { setGoal(g); setRoom(testRoom); setPhase('fighting') }}
       />
     )
   }

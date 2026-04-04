@@ -6,7 +6,9 @@ import {
 
 const PRESETS = ['勉強', '読書', '仕事', '運動', '資格勉強', 'プログラミング']
 
-export default function GoalScreen({ onStart }) {
+const TEST_ROOM = { id: 'test-room', opponentGoal: '勉強', isTest: true }
+
+export default function GoalScreen({ onStart, onTestStart }) {
   const [goal, setGoal] = useState('')
 
   return (
@@ -46,6 +48,14 @@ export default function GoalScreen({ onStart }) {
       >
         <Text style={styles.buttonText}>マッチング開始</Text>
       </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.testButton, !goal && styles.buttonDisabled]}
+        onPress={() => goal && onTestStart(goal, TEST_ROOM)}
+        disabled={!goal}
+      >
+        <Text style={styles.testButtonText}>🤖 テスト対戦（ひとりで試す）</Text>
+      </TouchableOpacity>
     </KeyboardAvoidingView>
   )
 }
@@ -79,4 +89,10 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.4 },
   buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  testButton: {
+    width: '100%', borderRadius: 12, padding: 14,
+    alignItems: 'center', marginTop: 12,
+    borderWidth: 1, borderColor: '#3a3a5a',
+  },
+  testButtonText: { color: '#666', fontSize: 15 },
 })

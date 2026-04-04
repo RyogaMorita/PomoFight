@@ -44,6 +44,11 @@ export default function FightScreen({ room, goal, onFinish }) {
       appState.current = nextState
     })
 
+    // テストモードはリアルタイム監視不要
+    if (room.isTest) {
+      return () => { accelSub.remove(); appStateSub.remove() }
+    }
+
     // 相手の離脱を監視
     const channel = supabase
       .channel(`fight-${room.id}`)
@@ -114,10 +119,12 @@ export default function FightScreen({ room, goal, onFinish }) {
 
   async function handleLose(reason) {
     cleanup()
-    await supabase.from('room_players')
-      .update({ status: 'left' })
-      .eq('room_id', room.id)
-      .eq('player_id', session.user.id)
+    if (!room.isTest) {
+      await supabase.from('room_players')
+        .update({ status: 'left' })
+        .eq('room_id', room.id)
+        .eq('player_id', session.user.id)
+    }
     onFinish('lose')
   }
 
