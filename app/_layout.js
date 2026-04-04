@@ -1,5 +1,6 @@
 import { Slot, useRouter, useSegments } from 'expo-router'
 import { useEffect } from 'react'
+import { View, ActivityIndicator } from 'react-native'
 import { AuthProvider, useAuth } from '../context/AuthContext'
 
 function RouteGuard() {
@@ -11,15 +12,24 @@ function RouteGuard() {
     if (loading) return
 
     const inOnboarding = segments[0] === 'onboarding'
+    const inTabs = segments[0] === '(tabs)'
 
-    if (session && !profile) {
-      // ログイン済みだがプロフィール未作成 → ユーザー名入力へ
-      if (!inOnboarding) router.replace('/onboarding')
-    } else if (session && profile) {
-      // ログイン済みかつプロフィールあり → ホームへ
-      if (inOnboarding) router.replace('/')
+    if (session && !profile && !inOnboarding) {
+      router.replace('/onboarding')
+    } else if (session && profile && inOnboarding) {
+      router.replace('/(tabs)')
+    } else if (session && profile && segments[0] === undefined) {
+      router.replace('/(tabs)')
     }
-  }, [session, profile, loading])
+  }, [session, profile, loading, segments[0]])
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#1a1a2e', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color="#4CAF50" />
+      </View>
+    )
+  }
 
   return <Slot />
 }
