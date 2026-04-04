@@ -11,7 +11,6 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerShown: false,
         tabBarStyle: {
           backgroundColor: '#12122a',
           borderTopColor: '#2a2a4a',
@@ -26,6 +25,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'ホーム',
+          headerShown: false,
           tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
         }}
       />
@@ -33,6 +33,7 @@ export default function TabLayout() {
         name="battle"
         options={{
           title: 'バトル',
+          headerShown: false,
           tabBarIcon: ({ focused }) => <TabIcon emoji="⚔️" focused={focused} />,
         }}
       />
@@ -40,6 +41,7 @@ export default function TabLayout() {
         name="diary"
         options={{
           title: '日記',
+          headerShown: false,
           tabBarIcon: ({ focused }) => <TabIcon emoji="📖" focused={focused} />,
         }}
       />
@@ -47,6 +49,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'プロフィール',
+          headerShown: false,
           tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} />,
         }}
       />
