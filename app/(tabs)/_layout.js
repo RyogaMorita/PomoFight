@@ -59,7 +59,7 @@ export default function TabLayout() {
               activeTab === 'battle' && styles.battleTabActive,
             ]}>
               <Text style={styles.battleTabEmoji}>⚔️</Text>
-              <Text style={styles.battleTabLabel}>バトル開始</Text>
+              <Text style={[styles.battleTabLabel, activeTab === 'battle' && styles.battleTabLabelActive]}>バトル開始</Text>
             </View>
           </TouchableOpacity>
 
@@ -129,17 +129,19 @@ const styles = StyleSheet.create({
   battleTab: {
     width: '100%', alignItems: 'center', justifyContent: 'center',
     paddingVertical: 8, borderRadius: radius.lg,
-    backgroundColor: colors.accent,
-    shadowColor: colors.accent,
+    backgroundColor: colors.cardSub,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  battleTabActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 8,
   },
-  battleTabActive: {
-    backgroundColor: colors.primary,
-    shadowColor: colors.primary,
-  },
   battleTabEmoji: { fontSize: 22 },
-  battleTabLabel: { fontSize: 11, color: '#fff', fontWeight: '800', marginTop: 2 },
+  battleTabLabel: { fontSize: 11, color: colors.textSub, fontWeight: '800', marginTop: 2 },
+  battleTabLabelActive: { color: '#fff' },
 })
