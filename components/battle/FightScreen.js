@@ -5,6 +5,7 @@ import {
   Alert, Modal, Animated, Vibration
 } from 'react-native'
 import { Accelerometer } from 'expo-sensors'
+import NetInfo from '@react-native-community/netinfo'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import {
@@ -13,46 +14,60 @@ import {
   cancelPomodorNotification,
   setupNotificationChannel,
 } from '../../lib/notifications'
+import { getSettings } from '../../lib/settings'
 import TreeDisplay, { getTreeStage } from '../TreeDisplay'
 import { colors, radius, shadow } from '../../lib/theme'
 
-const POMODORO_SECONDS = 25 * 60
 const FACE_DOWN_THRESHOLD = 0.6
 const LEAVE_GRACE_SECONDS = 10
 const FACEDOWN_LIMIT = 10
 const FACEUP_GRACE = 10
+const OFFLINE_GRACE_SECONDS = 10
 
 export default function FightScreen({ room, goal, onFinish }) {
   const { session, profile } = useAuth()
+  const POMODORO_SECONDS = 25 * 60
   const [timeLeft, setTimeLeft] = useState(POMODORO_SECONDS)
   const [isFaceDown, setIsFaceDown] = useState(false)
   const [opponentLeft, setOpponentLeft] = useState(false)
   const [leaveWarning, setLeaveWarning] = useState(0)
+  const [offlineCount, setOfflineCount] = useState(0)
+  const [isOffline, setIsOffline] = useState(false)
   const [phase, setPhase] = useState('facedown')
   const [facedownCount, setFacedownCount] = useState(FACEDOWN_LIMIT)
   const [faceupCount, setFaceupCount] = useState(FACEUP_GRACE)
   const [opponent, setOpponent] = useState(null)
-  const [activePlayers, setActivePlayers] = useState(null) // null = 1v1（非表示）
+  const [activePlayers, setActivePlayers] = useState(null)
   const [showReport, setShowReport] = useState(false)
   const [pomodoros, setPomodoros] = useState(profile?.total_pomodoros ?? 0)
+  const [soundEnabled, setSoundEnabled] = useState(true)
   const growAnim = useRef(new Animated.Value(1)).current
 
-  const leaveTimer = useRef(null)
+  const leaveTimer   = useRef(null)
   const pomodoroTimer = useRef(null)
   const facedownTimer = useRef(null)
-  const faceupTimer = useRef(null)
-  const hasLost = useRef(false)        // 多重呼び出しガード
-  const phaseRef = useRef('facedown')  // useEffect クロージャ用
-  const appState = useRef(AppState.currentState)
+  const faceupTimer  = useRef(null)
+  const offlineTimer = useRef(null)
+  const hasLost      = useRef(false)
+  const phaseRef     = useRef('facedown')
+  const isFaceDownRef = useRef(false)   // スリープ時のleave判定用
+  const appState     = useRef(AppState.currentState)
 
   useEffect(() => {
     setupNotificationChannel()
     requestNotificationPermission()
+    loadSettingsAndInit()
     if (!room.isTest) fetchOpponent()
     setupListeners()
+    setupNetworkListener()
     startFacedownTimer()
     return () => cleanup()
   }, [])
+
+  async function loadSettingsAndInit() {
+    const s = await getSettings()
+    setSoundEnabled(s.sound)
+  }
 
   // ── カウントが0になったら負け（setState外で検知）──────────
   useEffect(() => {
@@ -72,6 +87,12 @@ export default function FightScreen({ room, goal, onFinish }) {
       handleLose('離脱')
     }
   }, [leaveWarning])
+
+  useEffect(() => {
+    if (offlineCount >= OFFLINE_GRACE_SECONDS && phaseRef.current === 'fighting') {
+      handleLose('オフライン')
+    }
+  }, [offlineCount])
 
   async function fetchOpponent() {
     const { data } = await supabase
@@ -93,12 +114,17 @@ export default function FightScreen({ room, goal, onFinish }) {
   function setupListeners() {
     Accelerometer.setUpdateInterval(500)
     const accelSub = Accelerometer.addListener(({ z }) => {
-      setIsFaceDown(z > FACE_DOWN_THRESHOLD)
+      const fd = z > FACE_DOWN_THRESHOLD
+      isFaceDownRef.current = fd
+      setIsFaceDown(fd)
     })
 
     const appStateSub = AppState.addEventListener('change', nextState => {
       if (nextState === 'background' || nextState === 'inactive') {
-        startLeaveTimer()
+        // 伏せ中のスリープは正常 → leaveWarningを発動しない
+        if (!isFaceDownRef.current) {
+          startLeaveTimer()
+        }
       } else if (nextState === 'active') {
         clearLeaveTimer()
       }
@@ -177,10 +203,40 @@ export default function FightScreen({ room, goal, onFinish }) {
     }
   }
 
+  function setupNetworkListener() {
+    if (room.isTest) return
+    const unsub = NetInfo.addEventListener(state => {
+      const connected = state.isConnected && state.isInternetReachable !== false
+      setIsOffline(!connected)
+      if (!connected) {
+        startOfflineTimer()
+      } else {
+        clearOfflineTimer()
+      }
+    })
+    return unsub
+  }
+
+  function startOfflineTimer() {
+    if (offlineTimer.current) return
+    offlineTimer.current = setInterval(() => {
+      setOfflineCount(prev => prev < OFFLINE_GRACE_SECONDS ? prev + 1 : prev)
+    }, 1000)
+  }
+
+  function clearOfflineTimer() {
+    if (offlineTimer.current) {
+      clearInterval(offlineTimer.current)
+      offlineTimer.current = null
+      setOfflineCount(0)
+    }
+  }
+
   function cleanup() {
     stopFacedownTimer()
     stopFaceupTimer()
     clearLeaveTimer()
+    clearOfflineTimer()
     if (pomodoroTimer.current) {
       clearInterval(pomodoroTimer.current)
       pomodoroTimer.current = null
@@ -302,6 +358,13 @@ export default function FightScreen({ room, goal, onFinish }) {
       {opponentLeft && (
         <View style={styles.banner}>
           <Text style={styles.bannerText}>🎉 相手が離脱しました！勝利！</Text>
+        </View>
+      )}
+      {isOffline && offlineCount > 0 && (
+        <View style={[styles.warningBanner, { backgroundColor: '#ff6b00' }]}>
+          <Text style={styles.warningText}>
+            📡 オフライン！{OFFLINE_GRACE_SECONDS - offlineCount}秒で失格
+          </Text>
         </View>
       )}
       {leaveWarning > 0 && (

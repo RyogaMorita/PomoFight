@@ -5,12 +5,14 @@ import HomeScreen from './index'
 import BattleScreen from './battle'
 import DiaryScreen from './diary'
 import ProfileScreen from './profile'
+import SettingsScreen from './settings'
 
 const TABS = [
-  { key: 'home',    label: 'ホーム',       emoji: '🏠' },
-  { key: 'diary',   label: '日記',         emoji: '📖' },
-  { key: 'battle',  label: 'バトル開始',   emoji: '⚔️' },
-  { key: 'profile', label: 'プロフィール', emoji: '👤' },
+  { key: 'home',     label: 'ホーム',       emoji: '🎒' },
+  { key: 'battle',   label: 'バトル',       emoji: '⚔️' },
+  { key: 'diary',    label: '日記',         emoji: '📖' },
+  { key: 'profile',  label: 'プロフィール', emoji: '👤' },
+  { key: 'settings', label: '設定',         emoji: '⚙️' },
 ]
 
 export default function TabLayout() {
@@ -41,9 +43,10 @@ export default function TabLayout() {
           onHideTabBar={setHideTabBar}
         />
       )
-      case 'diary':   return <DiaryScreen />
-      case 'profile': return <ProfileScreen />
-      default:        return null
+      case 'diary':    return <DiaryScreen />
+      case 'profile':  return <ProfileScreen />
+      case 'settings': return <SettingsScreen />
+      default:         return null
     }
   }
 

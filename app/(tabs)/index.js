@@ -130,8 +130,7 @@ export default function HomeScreen({ onBattle, onCreateRoom, onJoinRoom }) {
               style={styles.image}
               resizeMode="cover"
             />
-            <View style={styles.watermarkCover} />
-          </View>
+            </View>
         </View>
       </TouchableOpacity>
 
@@ -226,10 +225,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#d8d8d8',
   },
   image: { width: '100%', height: '100%' },
-  watermarkCover: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    height: 32, backgroundColor: '#d8d8d8',
-  },
 
   // ボタン群
   buttonSection: {
