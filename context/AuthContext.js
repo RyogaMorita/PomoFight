@@ -87,17 +87,8 @@ export function AuthProvider({ children }) {
     return { error }
   }
 
-  async function updateHomeTree(stage) {
-    if (!session) return
-    const { error } = await supabase
-      .from('profiles')
-      .update({ home_tree: stage })
-      .eq('id', session.user.id)
-    if (!error) setProfile(prev => ({ ...prev, home_tree: stage }))
-  }
-
   return (
-    <AuthContext.Provider value={{ session, profile, loading, createProfile, linkEmail, fetchProfile, updateHomeTree }}>
+    <AuthContext.Provider value={{ session, profile, loading, createProfile, linkEmail, fetchProfile }}>
       {children}
     </AuthContext.Provider>
   )

@@ -4,7 +4,6 @@ import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import RankingModal from '../../components/RankingModal'
 import FriendModal from '../../components/FriendModal'
-import TreePickerModal from '../../components/TreePickerModal'
 import TreeDisplay, { getTreeStage } from '../../components/TreeDisplay'
 import { colors, radius, shadow } from '../../lib/theme'
 
@@ -20,20 +19,29 @@ function getTier(rank) {
   return TIERS.find(t => rank >= t.min) ?? TIERS[TIERS.length - 1]
 }
 
-export default function HomeScreen({ onBattle }) {
-  const { profile, session, updateHomeTree } = useAuth()
+function getProgress(total) {
+  const thresholds = [0, 5, 15, 30, 50, 80, 120, 180, 250, 350]
+  const stage = getTreeStage(total)
+  if (stage >= 10) return 100
+  const cur = thresholds[stage - 1] ?? 0
+  const next = thresholds[stage] ?? 350
+  return Math.min(100, Math.round(((total - cur) / (next - cur)) * 100))
+}
+
+export default function HomeScreen() {
+  const { profile, session } = useAuth()
   const [showRanking, setShowRanking] = useState(false)
   const [showFriends, setShowFriends] = useState(false)
-  const [showPicker, setShowPicker]   = useState(false)
   const [streak, setStreak] = useState(0)
 
-  const total   = profile?.total_pomodoros ?? 0
-  const wins    = profile?.wins ?? 0
-  const losses  = profile?.losses ?? 0
-  const rank    = profile?.rank ?? 0
-  const tier    = getTier(rank)
+  const total  = profile?.total_pomodoros ?? 0
+  const wins   = profile?.wins ?? 0
+  const losses = profile?.losses ?? 0
+  const rank   = profile?.rank ?? 0
+  const progress = getProgress(total)
+  const stage  = getTreeStage(total)
+  const tier   = getTier(rank)
   const winRate = wins + losses > 0 ? Math.round(wins / (wins + losses) * 100) : 0
-  const homeTree = profile?.home_tree ?? 1
 
   useEffect(() => { fetchStreak() }, [])
 
@@ -46,10 +54,13 @@ export default function HomeScreen({ onBattle }) {
       .order('created_at', { ascending: false })
       .limit(60)
     if (!data) return
+
+    // 連続日数を計算
     const dates = [...new Set(data.map(l => {
       const d = new Date(l.created_at)
       return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
     }))]
+
     let count = 0
     const today = new Date()
     for (let i = 0; i < dates.length; i++) {
@@ -64,33 +75,41 @@ export default function HomeScreen({ onBattle }) {
 
   return (
     <View style={styles.container}>
-      <RankingModal    visible={showRanking} onClose={() => setShowRanking(false)} />
-      <FriendModal     visible={showFriends} onClose={() => setShowFriends(false)} />
-      <TreePickerModal
-        visible={showPicker}
-        onClose={() => setShowPicker(false)}
-        totalPomodoros={total}
-        selected={homeTree}
-        onSelect={updateHomeTree}
-      />
+      <RankingModal visible={showRanking} onClose={() => setShowRanking(false)} />
+      <FriendModal  visible={showFriends} onClose={() => setShowFriends(false)} />
 
       {/* ── 上部バー ── */}
       <View style={styles.topBar}>
-        <View style={styles.topLeft}>
+        {/* XPバー */}
+        <View style={styles.xpSection}>
+          <View style={styles.xpLabelRow}>
+            <Text style={styles.xpStage}>🌱 Stage {stage}</Text>
+            <Text style={styles.xpCount}>{total} ポモ</Text>
+          </View>
+          <View style={styles.xpBarBg}>
+            <View style={[styles.xpBarFill, { width: `${progress}%` }]} />
+          </View>
+        </View>
+        {/* ストリーク */}
+        <View style={styles.streakBadge}>
+          <Text style={styles.streakFire}>🔥</Text>
+          <Text style={styles.streakNum}>{streak}</Text>
+          <Text style={styles.streakLabel}>連続</Text>
+        </View>
+      </View>
+
+      {/* ── プレイヤーバー ── */}
+      <View style={styles.playerBar}>
+        <View style={styles.playerLeft}>
           <Text style={styles.username}>{profile?.username ?? '---'}</Text>
+          {/* ランクティア */}
           <View style={[styles.tierBadge, { borderColor: tier.color }]}>
             <Text style={styles.tierEmoji}>{tier.emoji}</Text>
             <Text style={[styles.tierLabel, { color: tier.color }]}>{tier.label}</Text>
-            <Text style={[styles.tierNum,   { color: tier.color }]}>{rank}</Text>
+            <Text style={[styles.tierNum, { color: tier.color }]}>{rank}</Text>
           </View>
         </View>
-        <View style={styles.topRight}>
-          {streak > 0 && (
-            <View style={styles.streakBadge}>
-              <Text style={styles.streakFire}>🔥</Text>
-              <Text style={styles.streakNum}>{streak}</Text>
-            </View>
-          )}
+        <View style={styles.iconButtons}>
           <TouchableOpacity style={styles.iconBtn} onPress={() => setShowFriends(true)}>
             <Text style={styles.iconBtnText}>👥</Text>
           </TouchableOpacity>
@@ -100,36 +119,26 @@ export default function HomeScreen({ onBattle }) {
         </View>
       </View>
 
-      {/* ── 中央：木カード（タップで画像変更） ── */}
-      <View style={styles.arenaWrap}>
-        <TouchableOpacity onPress={() => setShowPicker(true)} activeOpacity={0.9} style={styles.treeTouch}>
-          <TreeDisplay totalPomodoros={total} size="large" overrideStage={homeTree} />
-        </TouchableOpacity>
-      </View>
-
-      {/* ── 戦績バー ── */}
+      {/* ── 勝敗バー ── */}
       <View style={styles.statsBar}>
-        <StatChip label="勝利"       value={`${wins}勝`}   icon="⚔️" color={colors.primary} />
-        <View style={styles.divider} />
-        <StatChip label="勝率"       value={`${winRate}%`} icon="📊" color={colors.gold} />
-        <View style={styles.divider} />
-        <StatChip label="ポモドーロ"  value={`${total}`}   icon="🍅" color={colors.accent} />
+        <StatChip label="勝利" value={`${wins}勝`} color={colors.primary} />
+        <View style={styles.statsDivider} />
+        <StatChip label="勝率" value={`${winRate}%`} color={colors.gold} />
+        <View style={styles.statsDivider} />
+        <StatChip label="ポモドーロ" value={`${total}`} color={colors.accent} />
       </View>
 
-      {/* ── バトル開始 ── */}
-      <View style={styles.bottomSection}>
-        <TouchableOpacity style={styles.battleButton} onPress={onBattle} activeOpacity={0.85}>
-          <Text style={styles.battleButtonText}>⚔️  バトル開始</Text>
-        </TouchableOpacity>
+      {/* ── 中央：木 ── */}
+      <View style={styles.arenaWrap}>
+        <TreeDisplay totalPomodoros={total} size="large" />
       </View>
     </View>
   )
 }
 
-function StatChip({ label, value, icon, color }) {
+function StatChip({ label, value, color }) {
   return (
     <View style={styles.statChip}>
-      <Text style={styles.statIcon}>{icon}</Text>
       <Text style={[styles.statValue, { color }]}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
@@ -139,65 +148,69 @@ function StatChip({ label, value, icon, color }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
 
+  // 上部バー
   topBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 16, paddingTop: 52, paddingBottom: 10,
     backgroundColor: colors.card,
     borderBottomWidth: 1, borderBottomColor: colors.border,
+    gap: 12,
   },
-  topLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  username: { fontSize: 17, fontWeight: 'bold', color: colors.text },
+  xpSection: { flex: 1 },
+  xpLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
+  xpStage: { fontSize: 12, fontWeight: '700', color: colors.primary },
+  xpCount: { fontSize: 12, color: colors.textSub },
+  xpBarBg: { height: 7, backgroundColor: colors.border, borderRadius: 4, overflow: 'hidden' },
+  xpBarFill: { height: '100%', backgroundColor: colors.primary, borderRadius: 4 },
+
+  streakBadge: {
+    alignItems: 'center', backgroundColor: colors.cardSub,
+    borderRadius: radius.md, paddingVertical: 4, paddingHorizontal: 10,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  streakFire: { fontSize: 16 },
+  streakNum: { fontSize: 16, fontWeight: '800', color: colors.text, lineHeight: 20 },
+  streakLabel: { fontSize: 9, color: colors.textLight },
+
+  // プレイヤーバー
+  playerBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 10,
+    backgroundColor: colors.card,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  playerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  username: { fontSize: 18, fontWeight: 'bold', color: colors.text },
   tierBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
     borderWidth: 1.5, borderRadius: radius.full,
     paddingVertical: 2, paddingHorizontal: 8,
   },
-  tierEmoji: { fontSize: 12 },
-  tierLabel: { fontSize: 10, fontWeight: '800' },
-  tierNum:   { fontSize: 10, fontWeight: '600' },
-  topRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  streakBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 2,
-    backgroundColor: '#fff3e0', borderRadius: radius.full,
-    paddingVertical: 3, paddingHorizontal: 7,
-    borderWidth: 1, borderColor: '#ffcc02',
-  },
-  streakFire: { fontSize: 13 },
-  streakNum:  { fontSize: 13, fontWeight: '800', color: '#e65100' },
+  tierEmoji: { fontSize: 13 },
+  tierLabel: { fontSize: 11, fontWeight: '800' },
+  tierNum: { fontSize: 11, fontWeight: '600' },
+  iconButtons: { flexDirection: 'row', gap: 8 },
   iconBtn: {
-    width: 34, height: 34, borderRadius: 17,
+    width: 40, height: 40, borderRadius: 20,
     backgroundColor: colors.cardSub, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: colors.border,
+    borderWidth: 1, borderColor: colors.border, ...shadow,
   },
-  iconBtnText: { fontSize: 16 },
+  iconBtnText: { fontSize: 18 },
 
-  arenaWrap: {
-    flex: 1, paddingHorizontal: 20, paddingVertical: 16,
-    justifyContent: 'center',
-  },
-  treeTouch: { width: '100%' },
-
+  // 勝敗バー
   statsBar: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: colors.card, paddingVertical: 8,
-    borderTopWidth: 1, borderTopColor: colors.border,
+    backgroundColor: colors.card, paddingVertical: 10,
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  statChip:  { flex: 1, alignItems: 'center', paddingVertical: 4 },
-  statIcon:  { fontSize: 16, marginBottom: 2 },
-  statValue: { fontSize: 16, fontWeight: '800' },
+  statChip: { flex: 1, alignItems: 'center' },
+  statValue: { fontSize: 15, fontWeight: '800' },
   statLabel: { fontSize: 9, color: colors.textLight, marginTop: 1 },
-  divider:   { width: 1, height: 36, backgroundColor: colors.border },
+  statsDivider: { width: 1, height: 28, backgroundColor: colors.border },
 
-  bottomSection: {
-    paddingHorizontal: 16, paddingBottom: 14, paddingTop: 10,
-    backgroundColor: colors.card,
+  // 中央
+  arenaWrap: {
+    flex: 1, paddingHorizontal: 20, paddingVertical: 12,
+    justifyContent: 'center',
   },
-  battleButton: {
-    backgroundColor: colors.primary, borderRadius: radius.lg,
-    paddingVertical: 16, alignItems: 'center',
-    shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
-  },
-  battleButtonText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
 })
