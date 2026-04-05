@@ -57,8 +57,8 @@ function Particle({ delay, isWin }) {
 export default function FinishScreen({ result, room, onBack }) {
   const { session, profile, fetchProfile } = useAuth()
   const isWin   = result === 'win'
-  const [loading, setLoading] = useState(true)
-  const [newRank, setNewRank] = useState(0)
+  const [loading, setLoading]   = useState(true)
+  const [bonusInfo, setBonusInfo] = useState(null)
 
   // アニメーション
   const emojiScale   = useRef(new Animated.Value(0)).current
@@ -72,6 +72,10 @@ export default function FinishScreen({ result, room, onBack }) {
   const [displayRank, setDisplayRank] = useState(profile?.rank ?? 0)
   const bgFlash      = useRef(new Animated.Value(0)).current
 
+  // ボーナスバナーアニメーション
+  const bannerScale  = useRef(new Animated.Value(0)).current
+  const bannerOp     = useRef(new Animated.Value(0)).current
+
   const message = isWin
     ? WIN_MESSAGES[Math.floor(Math.random() * WIN_MESSAGES.length)]
     : LOSE_MESSAGES[Math.floor(Math.random() * LOSE_MESSAGES.length)]
@@ -80,21 +84,20 @@ export default function FinishScreen({ result, room, onBack }) {
 
   async function recordResult() {
     let change = 0
-    if (!room?.isTest) {
-      const prev = profile?.rank ?? 0
-      await supabase.rpc('record_battle_result', {
-        p_user_id: session.user.id,
-        p_is_win: isWin,
-      })
-      await fetchProfile(session.user.id)
-      change = isWin ? 20 : -10
-      setNewRank(prev + change)
-    }
+    let info   = null
+    const { data } = await supabase.rpc('record_battle_result', {
+      p_user_id: session.user.id,
+      p_is_win: isWin,
+    })
+    info   = data
+    change = data?.total ?? (isWin ? 20 : -10)
+    setBonusInfo(info)
+    await fetchProfile(session.user.id)
     setLoading(false)
-    startAnimations(change)
+    startAnimations(change, info)
   }
 
-  function startAnimations(change) {
+  function startAnimations(change, info) {
     // 背景フラッシュ
     Animated.sequence([
       Animated.timing(bgFlash, { toValue: 1, duration: 150, useNativeDriver: false }),
@@ -126,13 +129,23 @@ export default function FinishScreen({ result, room, onBack }) {
     ]).start()
 
     // ランクカウントアップ/ダウン
-    if (!room?.isTest) {
+    {
       const prev = profile?.rank ?? 0
       Animated.timing(rankCount, {
         toValue: change, duration: 1200, delay: 800,
         easing: Easing.out(Easing.quad), useNativeDriver: false,
       }).start()
       rankCount.addListener(({ value }) => setDisplayRank(Math.round(prev + value)))
+    }
+
+    // ボーナスバナー（コンボ or 初勝利があるとき）
+    const hasBonus = info && isWin && (info.combo_bonus > 0 || info.first_bonus > 0)
+    if (hasBonus) {
+      Animated.sequence([
+        Animated.delay(900),
+        Animated.spring(bannerScale, { toValue: 1, friction: 5, tension: 100, useNativeDriver: true }),
+        Animated.timing(bannerOp,   { toValue: 1, duration: 200, useNativeDriver: true }),
+      ]).start()
     }
   }
 
@@ -151,7 +164,11 @@ export default function FinishScreen({ result, room, onBack }) {
     )
   }
 
-  const rankChange = isWin ? +20 : -10
+  const total       = bonusInfo?.total       ?? (isWin ? 20 : -10)
+  const comboBonus  = bonusInfo?.combo_bonus ?? 0
+  const firstBonus  = bonusInfo?.first_bonus ?? 0
+  const streak      = bonusInfo?.streak      ?? 0
+  const hasBonus    = isWin && (comboBonus > 0 || firstBonus > 0)
 
   return (
     <Animated.View style={[styles.container, { backgroundColor: bgColor }]}>
@@ -164,12 +181,20 @@ export default function FinishScreen({ result, room, onBack }) {
       </View>
 
       {/* 絵文字 */}
-      <Animated.Text style={[
-        styles.emoji,
-        { transform: [{ scale: emojiScale }, { rotate: spin }] }
-      ]}>
-        {isWin ? '🏆' : '💀'}
-      </Animated.Text>
+      <View style={styles.emojiWrap}>
+        <Animated.Text style={[
+          styles.emoji,
+          { transform: [{ scale: emojiScale }, { rotate: spin }] }
+        ]}>
+          {isWin ? '🏆' : '💀'}
+        </Animated.Text>
+        {/* 連勝バッジ */}
+        {isWin && streak >= 2 && (
+          <View style={styles.streakBadge}>
+            <Text style={styles.streakBadgeText}>🔥 {streak}連勝中！</Text>
+          </View>
+        )}
+      </View>
 
       {/* タイトル */}
       <Animated.View style={{ transform: [{ translateY: titleY }], opacity: titleOp, alignItems: 'center' }}>
@@ -183,17 +208,37 @@ export default function FinishScreen({ result, room, onBack }) {
       <Animated.View style={[styles.cards, { transform: [{ translateY: cardsY }], opacity: cardsOp }]}>
 
         {/* ランク変動 */}
-        {!room?.isTest && (
+        {(
           <View style={[styles.rankCard, isWin ? styles.rankCardWin : styles.rankCardLose]}>
             <Text style={styles.rankCardLabel}>ランク変動</Text>
-            <View style={styles.rankRow}>
-              <Text style={[styles.rankArrow, isWin ? styles.rankArrowUp : styles.rankArrowDown]}>
-                {isWin ? '▲' : '▼'}
-              </Text>
-              <Text style={[styles.rankChangeNum, isWin ? styles.rankChangeWin : styles.rankChangeLose]}>
-                {isWin ? '+20' : '-10'}
-              </Text>
-            </View>
+
+            {/* ボーナス内訳 */}
+            {hasBonus ? (
+              <View style={styles.bonusBreakdown}>
+                <BreakdownRow label="基本" value={+20} color={colors.primary} />
+                {comboBonus > 0 && (
+                  <BreakdownRow label={`🔥 ${streak}連勝ボーナス`} value={comboBonus} color='#ff6b35' />
+                )}
+                {firstBonus > 0 && (
+                  <BreakdownRow label="⭐ 本日初勝利ボーナス" value={firstBonus} color='#f59e0b' />
+                )}
+                <View style={styles.bonusDivider} />
+                <View style={styles.bonusTotalRow}>
+                  <Text style={styles.bonusTotalLabel}>合計</Text>
+                  <Text style={[styles.rankChangeNum, styles.rankChangeWin]}>+{total}</Text>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.rankRow}>
+                <Text style={[styles.rankArrow, isWin ? styles.rankArrowUp : styles.rankArrowDown]}>
+                  {isWin ? '▲' : '▼'}
+                </Text>
+                <Text style={[styles.rankChangeNum, isWin ? styles.rankChangeWin : styles.rankChangeLose]}>
+                  {isWin ? `+${total}` : `${total}`}
+                </Text>
+              </View>
+            )}
+
             <View style={styles.rankNowRow}>
               <Text style={styles.rankNowLabel}>現在のランク</Text>
               <Text style={[styles.rankNowNum, isWin ? styles.rankChangeWin : styles.rankChangeLose]}>
@@ -201,6 +246,13 @@ export default function FinishScreen({ result, room, onBack }) {
               </Text>
             </View>
           </View>
+        )}
+
+        {/* 初勝利バナー */}
+        {firstBonus > 0 && (
+          <Animated.View style={[styles.firstWinBanner, { transform: [{ scale: bannerScale }], opacity: bannerOp }]}>
+            <Text style={styles.firstWinText}>⭐ 本日初勝利！ボーナス +{firstBonus}</Text>
+          </Animated.View>
         )}
 
         {/* ホームに戻る */}
@@ -218,6 +270,15 @@ export default function FinishScreen({ result, room, onBack }) {
   )
 }
 
+function BreakdownRow({ label, value, color }) {
+  return (
+    <View style={styles.breakdownRow}>
+      <Text style={styles.breakdownLabel}>{label}</Text>
+      <Text style={[styles.breakdownValue, { color }]}>+{value}</Text>
+    </View>
+  )
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   center:    { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
@@ -228,7 +289,17 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
 
-  emoji: { fontSize: 96, marginBottom: 16 },
+  emojiWrap: { alignItems: 'center', marginBottom: 16 },
+  emoji: { fontSize: 96 },
+
+  streakBadge: {
+    marginTop: 8,
+    backgroundColor: '#fff3e0',
+    borderRadius: radius.full,
+    paddingVertical: 4, paddingHorizontal: 14,
+    borderWidth: 1.5, borderColor: '#ff6b35',
+  },
+  streakBadgeText: { fontSize: 14, fontWeight: '800', color: '#ff6b35' },
 
   result:     { fontSize: 44, fontWeight: '900', marginBottom: 8 },
   resultWin:  { color: colors.gold },
@@ -243,7 +314,8 @@ const styles = StyleSheet.create({
   },
   rankCardWin:  { backgroundColor: '#fffbea', borderColor: colors.gold },
   rankCardLose: { backgroundColor: '#fff5f5', borderColor: colors.danger },
-  rankCardLabel:{ fontSize: 12, color: colors.textLight, fontWeight: '600', marginBottom: 8, textAlign: 'center' },
+  rankCardLabel:{ fontSize: 12, color: colors.textLight, fontWeight: '600', marginBottom: 12, textAlign: 'center' },
+
   rankRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 12 },
   rankArrow:    { fontSize: 20, fontWeight: '900' },
   rankArrowUp:  { color: colors.primary },
@@ -251,9 +323,30 @@ const styles = StyleSheet.create({
   rankChangeNum:{ fontSize: 48, fontWeight: '900' },
   rankChangeWin: { color: colors.primary },
   rankChangeLose:{ color: colors.danger },
+
+  // ボーナス内訳
+  bonusBreakdown: { marginBottom: 12 },
+  breakdownRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 },
+  breakdownLabel: { fontSize: 13, color: colors.textSub, fontWeight: '500' },
+  breakdownValue: { fontSize: 15, fontWeight: '800' },
+  bonusDivider:   { height: 1, backgroundColor: colors.border, marginVertical: 6 },
+  bonusTotalRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  bonusTotalLabel:{ fontSize: 14, fontWeight: '700', color: colors.text },
+
   rankNowRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border },
   rankNowLabel: { fontSize: 13, color: colors.textSub },
   rankNowNum:   { fontSize: 20, fontWeight: '800' },
+
+  // 初勝利バナー
+  firstWinBanner: {
+    backgroundColor: '#fffbea',
+    borderRadius: radius.lg,
+    paddingVertical: 14, paddingHorizontal: 20,
+    alignItems: 'center',
+    borderWidth: 2, borderColor: '#f59e0b',
+    ...shadow,
+  },
+  firstWinText: { fontSize: 16, fontWeight: '800', color: '#d97706' },
 
   homeBtn: {
     backgroundColor: colors.primary, borderRadius: radius.lg,
