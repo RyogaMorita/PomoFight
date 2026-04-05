@@ -6,6 +6,8 @@ import {
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { colors, radius, shadow } from '../../lib/theme'
+import { getTreeStage } from '../TreeDisplay'
+import TreeEvolutionOverlay from '../TreeEvolutionOverlay'
 
 const WIN_MESSAGES = [
   '完璧な集中力だ！🔥',
@@ -57,8 +59,9 @@ function Particle({ delay, isWin }) {
 export default function FinishScreen({ result, room, onBack }) {
   const { session, profile, fetchProfile } = useAuth()
   const isWin   = result === 'win'
-  const [loading, setLoading]   = useState(true)
-  const [bonusInfo, setBonusInfo] = useState(null)
+  const [loading, setLoading]       = useState(true)
+  const [bonusInfo, setBonusInfo]   = useState(null)
+  const [evolvedStage, setEvolvedStage] = useState(null) // { from, to }
 
   // アニメーション
   const emojiScale   = useRef(new Animated.Value(0)).current
@@ -85,6 +88,9 @@ export default function FinishScreen({ result, room, onBack }) {
   async function recordResult() {
     let change = 0
     let info   = null
+
+    const oldStage = getTreeStage(profile?.total_pomodoros ?? 0)
+
     const { data } = await supabase.rpc('record_battle_result', {
       p_user_id: session.user.id,
       p_is_win: isWin,
@@ -93,6 +99,18 @@ export default function FinishScreen({ result, room, onBack }) {
     change = data?.total ?? (isWin ? 20 : -10)
     setBonusInfo(info)
     await fetchProfile(session.user.id)
+
+    // 進化チェック：最新のtotal_pomodorosを直接取得
+    const { data: newProfile } = await supabase
+      .from('profiles')
+      .select('total_pomodoros')
+      .eq('id', session.user.id)
+      .single()
+    const newStage = getTreeStage(newProfile?.total_pomodoros ?? 0)
+    if (newStage > oldStage) {
+      setEvolvedStage({ from: oldStage, to: newStage })
+    }
+
     setLoading(false)
     startAnimations(change, info)
   }
@@ -172,6 +190,15 @@ export default function FinishScreen({ result, room, onBack }) {
 
   return (
     <Animated.View style={[styles.container, { backgroundColor: bgColor }]}>
+
+      {/* 木の進化演出 */}
+      {evolvedStage && (
+        <TreeEvolutionOverlay
+          fromStage={evolvedStage.from}
+          toStage={evolvedStage.to}
+          onDismiss={() => setEvolvedStage(null)}
+        />
+      )}
 
       {/* パーティクル */}
       <View style={styles.particleOrigin} pointerEvents="none">
