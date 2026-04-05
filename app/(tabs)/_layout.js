@@ -6,11 +6,10 @@ import BattleScreen from './battle'
 import DiaryScreen from './diary'
 import ProfileScreen from './profile'
 
-const LEFT_TABS = [
-  { key: 'home',    label: 'ホーム', emoji: '🏠' },
-  { key: 'diary',   label: '日記',   emoji: '📖' },
-]
-const RIGHT_TABS = [
+const TABS = [
+  { key: 'home',    label: 'ホーム',       emoji: '🏠' },
+  { key: 'diary',   label: '日記',         emoji: '📖' },
+  { key: 'battle',  label: 'バトル開始',   emoji: '⚔️' },
   { key: 'profile', label: 'プロフィール', emoji: '👤' },
 ]
 
@@ -36,61 +35,25 @@ export default function TabLayout() {
 
       {!hideTabBar && (
         <View style={styles.tabBar}>
-          {LEFT_TABS.map(tab => (
-            <SideTab
-              key={tab.key}
-              tab={tab}
-              active={activeTab === tab.key}
-              onPress={() => setActiveTab(tab.key)}
-            />
-          ))}
-
-          {/* 中央バトルボタン */}
-          <TouchableOpacity
-            style={[
-              styles.battleTabWrap,
-              activeTab === 'battle' ? styles.battleTabWrapActive : styles.battleTabWrapInactive,
-            ]}
-            onPress={() => setActiveTab('battle')}
-            activeOpacity={0.8}
-          >
-            <View style={[
-              styles.battleTab,
-              activeTab === 'battle' && styles.battleTabActive,
-            ]}>
-              <Text style={styles.battleTabEmoji}>⚔️</Text>
-              <Text style={[styles.battleTabLabel, activeTab === 'battle' && styles.battleTabLabelActive]}>バトル開始</Text>
-            </View>
-          </TouchableOpacity>
-
-          {RIGHT_TABS.map(tab => (
-            <SideTab
-              key={tab.key}
-              tab={tab}
-              active={activeTab === tab.key}
-              onPress={() => setActiveTab(tab.key)}
-            />
-          ))}
+          {TABS.map(tab => {
+            const active = activeTab === tab.key
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                style={[styles.tabItem, active && styles.tabItemActive]}
+                onPress={() => setActiveTab(tab.key)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.tabEmoji}>{tab.emoji}</Text>
+                <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            )
+          })}
         </View>
       )}
     </View>
-  )
-}
-
-function SideTab({ tab, active, onPress }) {
-  return (
-    <TouchableOpacity
-      style={[styles.sideTab, active ? styles.sideTabActive : styles.sideTabInactive]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View style={[styles.sideTabInner, active && styles.sideTabInnerActive]}>
-        <Text style={styles.sideTabEmoji}>{tab.emoji}</Text>
-        <Text style={[styles.sideTabLabel, active && styles.sideTabLabelActive]}>
-          {tab.label}
-        </Text>
-      </View>
-    </TouchableOpacity>
   )
 }
 
@@ -105,43 +68,22 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     paddingBottom: 24,
     height: 78,
-    alignItems: 'flex-end',  // 下揃えにして、上への浮き上がりで差をつける
+    alignItems: 'flex-end',
   },
 
-  // サイドタブ
-  sideTab: { flex: 1, alignItems: 'center', paddingBottom: 4 },
-  sideTabInactive: { marginBottom: 0 },      // 通常位置
-  sideTabActive:   { marginBottom: 8 },      // アクティブ時に浮き上がる
-  sideTabInner: {
-    alignItems: 'center', paddingVertical: 4, paddingHorizontal: 10,
-    borderRadius: radius.md, minWidth: 56,
+  tabItem: {
+    flex: 1, alignItems: 'center',
+    paddingVertical: 6, paddingHorizontal: 4,
+    marginBottom: 0,
+    borderRadius: radius.md,
+    marginHorizontal: 4,
   },
-  sideTabInnerActive: { backgroundColor: colors.primaryLight },
-  sideTabEmoji: { fontSize: 20 },
-  sideTabLabel: { fontSize: 10, color: colors.textLight, marginTop: 2 },
-  sideTabLabelActive: { color: colors.primary, fontWeight: '700' },
+  tabItemActive: {
+    backgroundColor: colors.primaryLight,
+    marginBottom: 8,
+  },
 
-  // 中央バトルボタン（ラッパーで位置制御）
-  battleTabWrap: { flex: 1.4, alignItems: 'center', paddingHorizontal: 4 },
-  battleTabWrapInactive: { paddingBottom: 4 },   // 通常位置
-  battleTabWrapActive:   { paddingBottom: 16 },  // アクティブ時に浮き上がる
-
-  battleTab: {
-    width: '100%', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 8, borderRadius: radius.lg,
-    backgroundColor: colors.cardSub,
-    borderWidth: 1, borderColor: colors.border,
-  },
-  battleTabActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  battleTabEmoji: { fontSize: 22 },
-  battleTabLabel: { fontSize: 11, color: colors.textSub, fontWeight: '800', marginTop: 2 },
-  battleTabLabelActive: { color: '#fff' },
+  tabEmoji: { fontSize: 20 },
+  tabLabel: { fontSize: 10, color: colors.textLight, marginTop: 2 },
+  tabLabelActive: { color: colors.primary, fontWeight: '700' },
 })
