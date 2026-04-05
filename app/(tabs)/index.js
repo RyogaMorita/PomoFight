@@ -1,11 +1,25 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import RankingModal from '../../components/RankingModal'
 import FriendModal from '../../components/FriendModal'
-import TreeDisplay, { getTreeStage } from '../../components/TreeDisplay'
+import TreePickerModal from '../../components/TreePickerModal'
+import { getTreeStage } from '../../components/TreeDisplay'
 import { colors, radius, shadow } from '../../lib/theme'
+
+const TREE_IMAGES = {
+  1:  require('../../assets/trees/tree_1.png'),
+  2:  require('../../assets/trees/tree_2.png'),
+  3:  require('../../assets/trees/tree_3.png'),
+  4:  require('../../assets/trees/tree_4.png'),
+  5:  require('../../assets/trees/tree_5.png'),
+  6:  require('../../assets/trees/tree_6.png'),
+  7:  require('../../assets/trees/tree_7.png'),
+  8:  require('../../assets/trees/tree_8.png'),
+  9:  require('../../assets/trees/tree_9.png'),
+  10: require('../../assets/trees/tree_10.png'),
+}
 
 const TIERS = [
   { min: 2000, label: 'LEGEND',  emoji: '👑', color: '#ff6b35' },
@@ -19,29 +33,20 @@ function getTier(rank) {
   return TIERS.find(t => rank >= t.min) ?? TIERS[TIERS.length - 1]
 }
 
-function getProgress(total) {
-  const thresholds = [0, 5, 15, 30, 50, 80, 120, 180, 250, 350]
-  const stage = getTreeStage(total)
-  if (stage >= 10) return 100
-  const cur = thresholds[stage - 1] ?? 0
-  const next = thresholds[stage] ?? 350
-  return Math.min(100, Math.round(((total - cur) / (next - cur)) * 100))
-}
-
-export default function HomeScreen() {
-  const { profile, session } = useAuth()
+export default function HomeScreen({ onBattle, onCreateRoom, onJoinRoom }) {
+  const { profile, session, updateHomeTree } = useAuth()
   const [showRanking, setShowRanking] = useState(false)
   const [showFriends, setShowFriends] = useState(false)
-  const [streak, setStreak] = useState(0)
+  const [showPicker, setShowPicker]   = useState(false)
+  const [streak, setStreak]           = useState(0)
 
-  const total  = profile?.total_pomodoros ?? 0
-  const wins   = profile?.wins ?? 0
-  const losses = profile?.losses ?? 0
-  const rank   = profile?.rank ?? 0
-  const progress = getProgress(total)
-  const stage  = getTreeStage(total)
-  const tier   = getTier(rank)
-  const winRate = wins + losses > 0 ? Math.round(wins / (wins + losses) * 100) : 0
+  const total    = profile?.total_pomodoros ?? 0
+  const wins     = profile?.wins ?? 0
+  const losses   = profile?.losses ?? 0
+  const rank     = profile?.rank ?? 0
+  const homeTree = profile?.home_tree ?? 1
+  const tier     = getTier(rank)
+  const winRate  = wins + losses > 0 ? Math.round(wins / (wins + losses) * 100) : 0
 
   useEffect(() => { fetchStreak() }, [])
 
@@ -55,7 +60,6 @@ export default function HomeScreen() {
       .limit(60)
     if (!data) return
 
-    // 連続日数を計算
     const dates = [...new Set(data.map(l => {
       const d = new Date(l.created_at)
       return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
@@ -77,32 +81,18 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <RankingModal visible={showRanking} onClose={() => setShowRanking(false)} />
       <FriendModal  visible={showFriends} onClose={() => setShowFriends(false)} />
-
-      {/* ── 上部バー ── */}
-      <View style={styles.topBar}>
-        {/* XPバー */}
-        <View style={styles.xpSection}>
-          <View style={styles.xpLabelRow}>
-            <Text style={styles.xpStage}>🌱 Stage {stage}</Text>
-            <Text style={styles.xpCount}>{total} ポモ</Text>
-          </View>
-          <View style={styles.xpBarBg}>
-            <View style={[styles.xpBarFill, { width: `${progress}%` }]} />
-          </View>
-        </View>
-        {/* ストリーク */}
-        <View style={styles.streakBadge}>
-          <Text style={styles.streakFire}>🔥</Text>
-          <Text style={styles.streakNum}>{streak}</Text>
-          <Text style={styles.streakLabel}>連続</Text>
-        </View>
-      </View>
+      <TreePickerModal
+        visible={showPicker}
+        onClose={() => setShowPicker(false)}
+        totalPomodoros={total}
+        selected={homeTree}
+        onSelect={updateHomeTree}
+      />
 
       {/* ── プレイヤーバー ── */}
       <View style={styles.playerBar}>
         <View style={styles.playerLeft}>
           <Text style={styles.username}>{profile?.username ?? '---'}</Text>
-          {/* ランクティア */}
           <View style={[styles.tierBadge, { borderColor: tier.color }]}>
             <Text style={styles.tierEmoji}>{tier.emoji}</Text>
             <Text style={[styles.tierLabel, { color: tier.color }]}>{tier.label}</Text>
@@ -110,6 +100,9 @@ export default function HomeScreen() {
           </View>
         </View>
         <View style={styles.iconButtons}>
+          <View style={styles.streakBadge}>
+            <Text style={styles.streakText}>🔥{streak}</Text>
+          </View>
           <TouchableOpacity style={styles.iconBtn} onPress={() => setShowFriends(true)}>
             <Text style={styles.iconBtnText}>👥</Text>
           </TouchableOpacity>
@@ -128,9 +121,33 @@ export default function HomeScreen() {
         <StatChip label="ポモドーロ" value={`${total}`} color={colors.accent} />
       </View>
 
-      {/* ── 中央：木 ── */}
-      <View style={styles.arenaWrap}>
-        <TreeDisplay totalPomodoros={total} size="large" />
+      {/* ── 中央：木（タップで変更） ── */}
+      <TouchableOpacity style={styles.arenaWrap} onPress={() => setShowPicker(true)} activeOpacity={0.9}>
+        <View style={styles.card}>
+          <View style={styles.imageWrap}>
+            <Image
+              source={TREE_IMAGES[homeTree]}
+              style={styles.image}
+              resizeMode="cover"
+            />
+            <View style={styles.watermarkCover} />
+          </View>
+        </View>
+      </TouchableOpacity>
+
+      {/* ── ボタン群 ── */}
+      <View style={styles.buttonSection}>
+        <TouchableOpacity style={styles.battleButton} onPress={onBattle} activeOpacity={0.85}>
+          <Text style={styles.battleButtonText}>⚔️ バトル開始</Text>
+        </TouchableOpacity>
+        <View style={styles.subButtons}>
+          <TouchableOpacity style={styles.subButton} onPress={onJoinRoom}>
+            <Text style={styles.subButtonText}>👥 フレンドバトル</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.subButton} onPress={onCreateRoom}>
+            <Text style={styles.subButtonText}>🚪 部屋を作る</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   )
@@ -148,34 +165,10 @@ function StatChip({ label, value, color }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
 
-  // 上部バー
-  topBar: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingTop: 52, paddingBottom: 10,
-    backgroundColor: colors.card,
-    borderBottomWidth: 1, borderBottomColor: colors.border,
-    gap: 12,
-  },
-  xpSection: { flex: 1 },
-  xpLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
-  xpStage: { fontSize: 12, fontWeight: '700', color: colors.primary },
-  xpCount: { fontSize: 12, color: colors.textSub },
-  xpBarBg: { height: 7, backgroundColor: colors.border, borderRadius: 4, overflow: 'hidden' },
-  xpBarFill: { height: '100%', backgroundColor: colors.primary, borderRadius: 4 },
-
-  streakBadge: {
-    alignItems: 'center', backgroundColor: colors.cardSub,
-    borderRadius: radius.md, paddingVertical: 4, paddingHorizontal: 10,
-    borderWidth: 1, borderColor: colors.border,
-  },
-  streakFire: { fontSize: 16 },
-  streakNum: { fontSize: 16, fontWeight: '800', color: colors.text, lineHeight: 20 },
-  streakLabel: { fontSize: 9, color: colors.textLight },
-
   // プレイヤーバー
   playerBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 10,
+    paddingHorizontal: 16, paddingTop: 52, paddingBottom: 12,
     backgroundColor: colors.card,
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
@@ -188,8 +181,14 @@ const styles = StyleSheet.create({
   },
   tierEmoji: { fontSize: 13 },
   tierLabel: { fontSize: 11, fontWeight: '800' },
-  tierNum: { fontSize: 11, fontWeight: '600' },
-  iconButtons: { flexDirection: 'row', gap: 8 },
+  tierNum:   { fontSize: 11, fontWeight: '600' },
+  iconButtons: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  streakBadge: {
+    backgroundColor: '#fff3e0', borderRadius: radius.full,
+    paddingVertical: 4, paddingHorizontal: 10,
+    borderWidth: 1, borderColor: '#f59e0b',
+  },
+  streakText: { fontSize: 13, fontWeight: '700', color: '#d97706' },
   iconBtn: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: colors.cardSub, alignItems: 'center', justifyContent: 'center',
@@ -210,7 +209,47 @@ const styles = StyleSheet.create({
 
   // 中央
   arenaWrap: {
-    flex: 1, paddingHorizontal: 20, paddingVertical: 12,
-    justifyContent: 'center',
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 20, paddingVertical: 12,
   },
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    padding: 12,
+    width: '100%',
+    alignItems: 'center',
+    ...shadow,
+  },
+  imageWrap: {
+    width: '100%', aspectRatio: 1,
+    borderRadius: radius.md, overflow: 'hidden',
+    backgroundColor: '#d8d8d8',
+  },
+  image: { width: '100%', height: '100%' },
+  watermarkCover: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    height: 32, backgroundColor: '#d8d8d8',
+  },
+
+  // ボタン群
+  buttonSection: {
+    paddingHorizontal: 16, paddingBottom: 14, paddingTop: 12,
+    backgroundColor: colors.card,
+    borderTopWidth: 1, borderTopColor: colors.border,
+    gap: 10,
+  },
+  battleButton: {
+    backgroundColor: colors.primary, borderRadius: radius.lg,
+    paddingVertical: 16, alignItems: 'center',
+    shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
+  },
+  battleButtonText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
+  subButtons: { flexDirection: 'row', gap: 10 },
+  subButton: {
+    flex: 1, backgroundColor: colors.cardSub, borderRadius: radius.md,
+    paddingVertical: 12, alignItems: 'center',
+    borderWidth: 1, borderColor: colors.border,
+  },
+  subButtonText: { fontSize: 14, color: colors.text, fontWeight: '600' },
 })

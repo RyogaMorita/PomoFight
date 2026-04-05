@@ -9,7 +9,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import {
   requestNotificationPermission,
-  schedulePomodoroDoneNotification,
+  scheduleBattleNotifications,
   cancelPomodorNotification,
   setupNotificationChannel,
 } from '../../lib/notifications'
@@ -32,6 +32,7 @@ export default function FightScreen({ room, goal, onFinish }) {
   const [facedownCount, setFacedownCount] = useState(FACEDOWN_LIMIT)
   const [faceupCount, setFaceupCount] = useState(FACEUP_GRACE)
   const [opponent, setOpponent] = useState(null)
+  const [activePlayers, setActivePlayers] = useState(null) // null = 1v1（非表示）
   const [showReport, setShowReport] = useState(false)
   const [pomodoros, setPomodoros] = useState(profile?.total_pomodoros ?? 0)
   const growAnim = useRef(new Animated.Value(1)).current
@@ -78,8 +79,15 @@ export default function FightScreen({ room, goal, onFinish }) {
       .select('player_id, profiles(username, rank, current_goal)')
       .eq('room_id', room.id)
       .neq('player_id', session.user.id)
-      .single()
-    if (data) setOpponent(data.profiles)
+
+    if (!data) return
+    if (data.length === 1) {
+      // 1v1
+      setOpponent(data[0].profiles)
+    } else {
+      // 複数人：残り人数モード
+      setActivePlayers(data.length + 1) // 自分含む
+    }
   }
 
   function setupListeners() {
@@ -106,11 +114,27 @@ export default function FightScreen({ room, goal, onFinish }) {
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'room_players',
         filter: `room_id=eq.${room.id}`
-      }, (payload) => {
-        if (payload.new.player_id !== session.user.id && payload.new.status === 'left') {
+      }, async (payload) => {
+        if (payload.new.player_id === session.user.id) return
+        if (payload.new.status !== 'left') return
+
+        // 残り人数を再取得して判定
+        const { data } = await supabase
+          .from('room_players')
+          .select('player_id, status')
+          .eq('room_id', room.id)
+
+        const active = data?.filter(p => p.status !== 'left') ?? []
+        const remaining = active.length
+
+        if (remaining <= 1) {
+          // 自分だけ残った → 勝利
           setOpponentLeft(true)
           cancelPomodorNotification()
           setTimeout(() => onFinish('win'), 2000)
+        } else {
+          // まだ他にいる → 残り人数更新
+          setActivePlayers(remaining)
         }
       })
       .subscribe()
@@ -200,7 +224,7 @@ export default function FightScreen({ room, goal, onFinish }) {
   }, [isFaceDown])
 
   function startPomodoro() {
-    schedulePomodoroDoneNotification(POMODORO_SECONDS)
+    scheduleBattleNotifications(POMODORO_SECONDS)
     pomodoroTimer.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
@@ -292,6 +316,12 @@ export default function FightScreen({ room, goal, onFinish }) {
           <Text style={styles.warningText}>
             📱 スマホを伏せてください！{faceupCount}秒で失格
           </Text>
+        </View>
+      )}
+
+      {activePlayers !== null && (
+        <View style={styles.activePlayersBar}>
+          <Text style={styles.activePlayersText}>👥 残り {activePlayers} 人</Text>
         </View>
       )}
 
@@ -510,6 +540,13 @@ const styles = StyleSheet.create({
   opponentNameSmall: { fontSize: 15, fontWeight: 'bold', color: colors.text },
   opponentRankSmall: { fontSize: 11, color: colors.gold },
   reportBtn: { fontSize: 20, padding: 4 },
+
+  activePlayersBar: {
+    position: 'absolute', top: 48, right: 16, zIndex: 99,
+    backgroundColor: colors.accent, borderRadius: radius.full,
+    paddingVertical: 6, paddingHorizontal: 14,
+  },
+  activePlayersText: { color: '#fff', fontWeight: '800', fontSize: 13 },
 
   banner: {
     position: 'absolute', top: 52, left: 16, right: 16, zIndex: 100,

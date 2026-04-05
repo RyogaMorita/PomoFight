@@ -14,13 +14,33 @@ const TABS = [
 ]
 
 export default function TabLayout() {
-  const [activeTab, setActiveTab] = useState('home')
-  const [hideTabBar, setHideTabBar] = useState(false)
+  const [activeTab, setActiveTab]           = useState('home')
+  const [hideTabBar, setHideTabBar]         = useState(false)
+  const [battleInitialPhase, setBattleInitialPhase] = useState('goal')
+  const [battleKey, setBattleKey]           = useState(0)
+
+  function goToBattle(phase = 'goal') {
+    setBattleInitialPhase(phase)
+    setBattleKey(k => k + 1)
+    setActiveTab('battle')
+  }
 
   function renderScreen() {
     switch (activeTab) {
-      case 'home':    return <HomeScreen />
-      case 'battle':  return <BattleScreen onHideTabBar={setHideTabBar} />
+      case 'home':    return (
+        <HomeScreen
+          onBattle={()      => goToBattle('goal')}
+          onCreateRoom={()  => goToBattle('create_room')}
+          onJoinRoom={()    => goToBattle('join_room')}
+        />
+      )
+      case 'battle':  return (
+        <BattleScreen
+          key={battleKey}
+          initialPhase={battleInitialPhase}
+          onHideTabBar={setHideTabBar}
+        />
+      )
       case 'diary':   return <DiaryScreen />
       case 'profile': return <ProfileScreen />
       default:        return null

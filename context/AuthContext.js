@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { getExpoPushToken, requestNotificationPermission } from '../lib/notifications'
 
 const AuthContext = createContext({})
 
@@ -64,11 +65,20 @@ export function AuthProvider({ children }) {
         .single()
       console.log('fetchProfile:', data, error?.code)
       setProfile(data ?? null)
+      if (data) savePushToken(userId)
     } catch (e) {
       console.error('fetchProfile error:', e)
     } finally {
       setLoading(false)
     }
+  }
+
+  async function savePushToken(userId) {
+    const granted = await requestNotificationPermission()
+    if (!granted) return
+    const token = await getExpoPushToken()
+    if (!token) return
+    await supabase.from('profiles').update({ push_token: token }).eq('id', userId)
   }
 
   async function createProfile(username) {
@@ -87,8 +97,17 @@ export function AuthProvider({ children }) {
     return { error }
   }
 
+  async function updateHomeTree(stage) {
+    if (!session) return
+    const { error } = await supabase
+      .from('profiles')
+      .update({ home_tree: stage })
+      .eq('id', session.user.id)
+    if (!error) setProfile(prev => ({ ...prev, home_tree: stage }))
+  }
+
   return (
-    <AuthContext.Provider value={{ session, profile, loading, createProfile, linkEmail, fetchProfile }}>
+    <AuthContext.Provider value={{ session, profile, loading, createProfile, linkEmail, fetchProfile, updateHomeTree }}>
       {children}
     </AuthContext.Provider>
   )
