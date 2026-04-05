@@ -5,6 +5,7 @@ import {
 } from 'react-native'
 import { useAuth } from '../../context/AuthContext'
 import FriendSection from '../../components/FriendSection'
+import { colors, radius, shadow } from '../../lib/theme'
 
 export default function ProfileScreen() {
   const { profile, linkEmail } = useAuth()
@@ -111,7 +112,7 @@ function BackupForm({ onClose, linkEmail }) {
         <TextInput
           style={styles.input}
           placeholder="メールアドレス"
-          placeholderTextColor="#555"
+          placeholderTextColor={colors.textLight}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -120,7 +121,7 @@ function BackupForm({ onClose, linkEmail }) {
         <TextInput
           style={styles.input}
           placeholder="パスワード（6文字以上）"
-          placeholderTextColor="#555"
+          placeholderTextColor={colors.textLight}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -128,7 +129,7 @@ function BackupForm({ onClose, linkEmail }) {
         <TextInput
           style={styles.input}
           placeholder="パスワード（確認）"
-          placeholderTextColor="#555"
+          placeholderTextColor={colors.textLight}
           value={confirm}
           onChangeText={setConfirm}
           secureTextEntry
@@ -152,56 +153,58 @@ function BackupForm({ onClose, linkEmail }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a1a2e' },
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 20, paddingTop: 56, paddingBottom: 40 },
-  header: { fontSize: 24, fontWeight: 'bold', color: '#fff', marginBottom: 20 },
+  header: { fontSize: 24, fontWeight: 'bold', color: colors.text, marginBottom: 20 },
 
   card: {
-    backgroundColor: '#2a2a4a', borderRadius: 16,
-    padding: 24, alignItems: 'center', marginBottom: 16,
+    backgroundColor: colors.card, borderRadius: radius.lg,
+    padding: 24, alignItems: 'center', marginBottom: 16, ...shadow,
   },
   avatarCircle: {
     width: 72, height: 72, borderRadius: 36,
-    backgroundColor: '#4CAF50', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
     marginBottom: 12,
   },
   avatarText: { fontSize: 32, fontWeight: 'bold', color: '#fff' },
-  username: { fontSize: 22, fontWeight: 'bold', color: '#fff', marginBottom: 4 },
-  rank: { fontSize: 15, color: '#ffd700' },
+  username: { fontSize: 22, fontWeight: 'bold', color: colors.text, marginBottom: 4 },
+  rank: { fontSize: 15, color: colors.gold },
 
   statsCard: {
-    backgroundColor: '#2a2a4a', borderRadius: 16,
-    padding: 16, marginBottom: 24,
+    backgroundColor: colors.card, borderRadius: radius.lg,
+    padding: 16, marginBottom: 24, ...shadow,
   },
   statRow: {
     flexDirection: 'row', justifyContent: 'space-between',
-    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#3a3a5a',
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  statLabel: { color: '#aaa', fontSize: 15 },
-  statValue: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  statLabel: { color: colors.textSub, fontSize: 15 },
+  statValue: { color: colors.text, fontSize: 15, fontWeight: '600' },
 
   backupSection: {
-    backgroundColor: '#2a2a4a', borderRadius: 16, padding: 16,
+    backgroundColor: colors.card, borderRadius: radius.lg, padding: 16, ...shadow,
   },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#fff', marginBottom: 6 },
-  sectionDesc: { fontSize: 13, color: '#888', marginBottom: 16 },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 6 },
+  sectionDesc: { fontSize: 13, color: colors.textSub, marginBottom: 16 },
 
   backupButton: {
-    backgroundColor: '#3a3a5a', borderRadius: 12,
+    backgroundColor: colors.cardSub, borderRadius: radius.md,
     padding: 14, alignItems: 'center',
+    borderWidth: 1, borderColor: colors.border,
   },
-  backupButtonText: { color: '#ccc', fontSize: 15 },
+  backupButtonText: { color: colors.textSub, fontSize: 15 },
 
   form: { gap: 10 },
   input: {
-    backgroundColor: '#3a3a5a', borderRadius: 12,
-    padding: 14, color: '#fff', fontSize: 15,
+    backgroundColor: colors.bg, borderRadius: radius.md,
+    padding: 14, color: colors.text, fontSize: 15,
+    borderWidth: 1, borderColor: colors.border,
   },
   submitButton: {
-    backgroundColor: '#4CAF50', borderRadius: 12,
+    backgroundColor: colors.primary, borderRadius: radius.md,
     padding: 14, alignItems: 'center', marginTop: 4,
   },
   buttonDisabled: { opacity: 0.5 },
   submitText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  cancelText: { color: '#666', fontSize: 14, textAlign: 'center', marginTop: 12 },
+  cancelText: { color: colors.textLight, fontSize: 14, textAlign: 'center', marginTop: 12 },
 })

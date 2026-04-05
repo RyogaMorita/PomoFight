@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native'
-import { useRouter } from 'expo-router'
 import { useAuth } from '../../context/AuthContext'
 import RankingModal from '../../components/RankingModal'
 import TreeDisplay from '../../components/TreeDisplay'
+import { colors, radius, shadow } from '../../lib/theme'
 
 function StatBadge({ label, value }) {
   return (
@@ -16,9 +16,7 @@ function StatBadge({ label, value }) {
 
 export default function HomeScreen() {
   const { profile } = useAuth()
-  const router = useRouter()
   const [showRanking, setShowRanking] = useState(false)
-
   const wins = profile?.wins ?? 0
   const losses = profile?.losses ?? 0
 
@@ -29,42 +27,36 @@ export default function HomeScreen() {
       {/* ヘッダー */}
       <View style={styles.header}>
         <View>
+          <Text style={styles.greeting}>おかえり 👋</Text>
           <Text style={styles.username}>{profile?.username ?? '---'}</Text>
-          <Text style={styles.rankText}>🏆 Rank {profile?.rank ?? 0}</Text>
         </View>
-        <View style={{ alignItems: 'flex-end', gap: 8 }}>
-          <View style={styles.pomodoroCount}>
-            <Text style={styles.pomodoroNum}>{profile?.total_pomodoros ?? 0}</Text>
-            <Text style={styles.pomodoroLabel}>🍅 合計</Text>
-          </View>
-          <TouchableOpacity onPress={() => setShowRanking(true)}>
-            <Text style={styles.rankingBtn}>🌍 ランキング</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.rankBadge} onPress={() => setShowRanking(true)}>
+          <Text style={styles.rankBadgeText}>🏆 {profile?.rank ?? 0}</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* 木 */}
-      <View style={styles.treeContainer}>
-        <TreeDisplay totalPomodoros={profile?.total_pomodoros ?? 0} size="large" />
-      </View>
+      {/* 木カード */}
+      <TreeDisplay totalPomodoros={profile?.total_pomodoros ?? 0} size="large" />
 
-      {/* 戦績 */}
-      <View style={styles.statsRow}>
+      {/* 統計 */}
+      <View style={styles.statsCard}>
+        <StatBadge label="ポモドーロ" value={`${profile?.total_pomodoros ?? 0}`} />
+        <View style={styles.divider} />
         <StatBadge label="勝利" value={`${wins}勝`} />
+        <View style={styles.divider} />
         <StatBadge label="敗北" value={`${losses}敗`} />
-        <StatBadge label="勝率" value={wins + losses > 0 ? `${Math.round(wins / (wins + losses) * 100)}%` : '-'} />
+        <View style={styles.divider} />
+        <StatBadge
+          label="勝率"
+          value={wins + losses > 0 ? `${Math.round(wins / (wins + losses) * 100)}%` : '-'}
+        />
       </View>
 
-      {/* バトル開始ボタン */}
-      <TouchableOpacity
-        style={styles.battleButton}
-        onPress={() => router.push('/(tabs)/battle')}
-        activeOpacity={0.85}
-      >
+      {/* バトルボタン */}
+      <TouchableOpacity style={styles.battleButton}>
         <Text style={styles.battleButtonText}>⚔️  バトル開始</Text>
       </TouchableOpacity>
 
-      {/* サブボタン */}
       <View style={styles.subButtons}>
         <TouchableOpacity style={styles.subButton}>
           <Text style={styles.subButtonText}>👥 フレンド対戦</Text>
@@ -73,50 +65,48 @@ export default function HomeScreen() {
           <Text style={styles.subButtonText}>🚪 部屋を作る</Text>
         </TouchableOpacity>
       </View>
-
     </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a1a2e' },
-  content: { padding: 24, paddingBottom: 40 },
+  container: { flex: 1, backgroundColor: colors.bg },
+  content: { padding: 20, paddingTop: 56, paddingBottom: 40 },
 
   header: {
     flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 24,
-    paddingTop: 48,
+    alignItems: 'center', marginBottom: 20,
   },
-  username: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
-  rankText: { fontSize: 14, color: '#ffd700', marginTop: 2 },
-  pomodoroCount: { alignItems: 'center' },
-  pomodoroNum: { fontSize: 28, fontWeight: 'bold', color: '#ff6b6b' },
-  pomodoroLabel: { fontSize: 12, color: '#aaa' },
-  rankingBtn: { fontSize: 13, color: '#4CAF50' },
-
-  treeContainer: { alignItems: 'center', marginVertical: 24 },
-
-  statsRow: {
-    flexDirection: 'row', justifyContent: 'space-around',
-    backgroundColor: '#12122a', borderRadius: 16,
-    padding: 16, marginBottom: 32,
+  greeting: { fontSize: 13, color: colors.textSub, marginBottom: 2 },
+  username: { fontSize: 24, fontWeight: 'bold', color: colors.text },
+  rankBadge: {
+    backgroundColor: colors.card, borderRadius: radius.full,
+    paddingVertical: 8, paddingHorizontal: 14,
+    borderWidth: 1, borderColor: colors.border, ...shadow,
   },
-  statBadge: { alignItems: 'center' },
-  statValue: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
-  statLabel: { fontSize: 12, color: '#aaa', marginTop: 4 },
+  rankBadgeText: { fontSize: 14, color: colors.gold, fontWeight: '600' },
+
+  statsCard: {
+    backgroundColor: colors.card, borderRadius: radius.lg,
+    padding: 16, flexDirection: 'row', alignItems: 'center',
+    marginTop: 16, marginBottom: 20, ...shadow,
+  },
+  statBadge: { flex: 1, alignItems: 'center' },
+  statValue: { fontSize: 18, fontWeight: 'bold', color: colors.text },
+  statLabel: { fontSize: 10, color: colors.textLight, marginTop: 2 },
+  divider: { width: 1, height: 32, backgroundColor: colors.border },
 
   battleButton: {
-    backgroundColor: '#4CAF50', borderRadius: 16,
-    paddingVertical: 18, alignItems: 'center', marginBottom: 16,
-    shadowColor: '#4CAF50', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4, shadowRadius: 8, elevation: 8,
+    backgroundColor: colors.primary, borderRadius: radius.lg,
+    paddingVertical: 18, alignItems: 'center', marginBottom: 12, ...shadow,
   },
-  battleButtonText: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
+  battleButtonText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
 
-  subButtons: { flexDirection: 'row', gap: 12 },
+  subButtons: { flexDirection: 'row', gap: 10 },
   subButton: {
-    flex: 1, backgroundColor: '#2a2a4a', borderRadius: 12,
+    flex: 1, backgroundColor: colors.card, borderRadius: radius.md,
     paddingVertical: 14, alignItems: 'center',
+    borderWidth: 1, borderColor: colors.border,
   },
-  subButtonText: { color: '#ccc', fontSize: 14, fontWeight: '600' },
+  subButtonText: { color: colors.textSub, fontSize: 14 },
 })

@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform
 } from 'react-native'
+import { colors, radius, shadow } from '../../lib/theme'
 
 const PRESETS = ['勉強', '読書', '仕事', '運動', '資格勉強', 'プログラミング']
 
@@ -22,7 +23,7 @@ export default function GoalScreen({ onStart, onTestStart }) {
       <TextInput
         style={styles.input}
         placeholder="例：英語の勉強"
-        placeholderTextColor="#666"
+        placeholderTextColor={colors.textLight}
         value={goal}
         onChangeText={setGoal}
         maxLength={30}
@@ -62,14 +63,15 @@ export default function GoalScreen({ onStart, onTestStart }) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, backgroundColor: '#1a1a2e',
+    flex: 1, backgroundColor: colors.bg,
     alignItems: 'center', justifyContent: 'center', padding: 24,
   },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
-  subtitle: { fontSize: 15, color: '#aaa', marginBottom: 32 },
+  title: { fontSize: 28, fontWeight: 'bold', color: colors.text, marginBottom: 8 },
+  subtitle: { fontSize: 15, color: colors.textSub, marginBottom: 32 },
   input: {
-    width: '100%', backgroundColor: '#2a2a4a', borderRadius: 12,
-    padding: 16, fontSize: 16, color: '#fff', marginBottom: 16,
+    width: '100%', backgroundColor: colors.card, borderRadius: radius.md,
+    padding: 16, fontSize: 16, color: colors.text, marginBottom: 16,
+    borderWidth: 1, borderColor: colors.border, ...shadow,
   },
   presets: {
     flexDirection: 'row', flexWrap: 'wrap',
@@ -77,22 +79,22 @@ const styles = StyleSheet.create({
   },
   preset: {
     paddingVertical: 8, paddingHorizontal: 16,
-    backgroundColor: '#2a2a4a', borderRadius: 20,
-    borderWidth: 1, borderColor: '#3a3a5a',
+    backgroundColor: colors.card, borderRadius: radius.full,
+    borderWidth: 1, borderColor: colors.border,
   },
-  presetActive: { backgroundColor: '#4CAF50', borderColor: '#4CAF50' },
-  presetText: { color: '#aaa', fontSize: 14 },
+  presetActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  presetText: { color: colors.textSub, fontSize: 14 },
   presetTextActive: { color: '#fff', fontWeight: 'bold' },
   button: {
-    width: '100%', backgroundColor: '#4CAF50',
-    borderRadius: 12, padding: 18, alignItems: 'center',
+    width: '100%', backgroundColor: colors.primary,
+    borderRadius: radius.md, padding: 18, alignItems: 'center', ...shadow,
   },
   buttonDisabled: { opacity: 0.4 },
   buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   testButton: {
-    width: '100%', borderRadius: 12, padding: 14,
+    width: '100%', borderRadius: radius.md, padding: 14,
     alignItems: 'center', marginTop: 12,
-    borderWidth: 1, borderColor: '#3a3a5a',
+    borderWidth: 1, borderColor: colors.border,
   },
-  testButtonText: { color: '#666', fontSize: 15 },
+  testButtonText: { color: colors.textSub, fontSize: 15 },
 })

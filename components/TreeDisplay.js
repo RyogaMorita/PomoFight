@@ -1,4 +1,5 @@
 import { View, Text, Image, StyleSheet } from 'react-native'
+import { colors, radius, shadow } from '../lib/theme'
 
 const TREE_IMAGES = {
   1: require('../assets/trees/tree_1.png'),
@@ -99,20 +100,16 @@ export default function TreeDisplay({ totalPomodoros, size = 'large' }) {
 const styles = StyleSheet.create({
   // ラージカード
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
     padding: 16,
     alignItems: 'center',
     width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    ...shadow,
   },
   imageWrap: {
     width: 240, height: 240,
-    borderRadius: 12, overflow: 'hidden',
+    borderRadius: radius.md, overflow: 'hidden',
     marginBottom: 16,
     backgroundColor: '#d8d8d8',
   },
@@ -122,30 +119,28 @@ const styles = StyleSheet.create({
     height: 30, backgroundColor: '#d8d8d8',
   },
   progressText: {
-    fontSize: 36, fontWeight: 'bold', color: '#4CAF50', marginBottom: 4,
+    fontSize: 36, fontWeight: 'bold', color: colors.primary, marginBottom: 4,
   },
   message: {
-    fontSize: 14, color: '#888', marginBottom: 12, textAlign: 'center',
+    fontSize: 14, color: colors.textSub, marginBottom: 12, textAlign: 'center',
   },
   progressBar: {
-    width: '100%', height: 8, backgroundColor: '#eee',
+    width: '100%', height: 8, backgroundColor: colors.border,
     borderRadius: 4, overflow: 'hidden', marginBottom: 8,
   },
   progressFill: {
-    height: '100%', backgroundColor: '#4CAF50', borderRadius: 4,
+    height: '100%', backgroundColor: colors.primary, borderRadius: 4,
   },
-  stageName: { fontSize: 12, color: '#aaa' },
+  stageName: { fontSize: 12, color: colors.textLight },
 
   // スモールカード（対戦中）
   smallCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', borderRadius: 12,
-    padding: 8, gap: 10,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
+    backgroundColor: colors.card, borderRadius: radius.md,
+    padding: 8, gap: 10, ...shadow,
   },
   imageWrapSmall: {
-    width: 56, height: 56, borderRadius: 8,
+    width: 56, height: 56, borderRadius: radius.sm,
     overflow: 'hidden', backgroundColor: '#d8d8d8',
   },
   imageSmall: { width: 56, height: 56 },
@@ -154,6 +149,6 @@ const styles = StyleSheet.create({
     height: 10, backgroundColor: '#d8d8d8',
   },
   smallInfo: { flex: 1 },
-  smallStageName: { fontSize: 13, fontWeight: '600', color: '#333' },
-  smallProgress: { fontSize: 12, color: '#4CAF50', marginTop: 2 },
+  smallStageName: { fontSize: 13, fontWeight: '600', color: colors.text },
+  smallProgress: { fontSize: 12, color: colors.primary, marginTop: 2 },
 })

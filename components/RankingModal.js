@@ -5,12 +5,13 @@ import {
 } from 'react-native'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { colors, radius, shadow } from '../lib/theme'
 
 const RANK_TIERS = [
   { min: 2000, label: '👑 LEGEND', color: '#ff6b35' },
   { min: 1500, label: '💎 DIAMOND', color: '#00d4ff' },
-  { min: 1000, label: '🏅 GOLD', color: '#ffd700' },
-  { min: 500, label: '🥈 SILVER', color: '#c0c0c0' },
+  { min: 1000, label: '🏅 GOLD', color: colors.gold },
+  { min: 500, label: '🥈 SILVER', color: '#a0a0a0' },
   { min: 0, label: '🥉 BRONZE', color: '#cd7f32' },
 ]
 
@@ -50,7 +51,7 @@ export default function RankingModal({ visible, onClose }) {
 
         {loading ? (
           <View style={styles.center}>
-            <ActivityIndicator color="#4CAF50" />
+            <ActivityIndicator color={colors.primary} />
           </View>
         ) : (
           <ScrollView contentContainerStyle={styles.list}>
@@ -84,33 +85,34 @@ export default function RankingModal({ visible, onClose }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a1a2e' },
+  container: { flex: 1, backgroundColor: colors.bg },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 20, paddingTop: 56, borderBottomWidth: 1, borderBottomColor: '#2a2a4a',
+    padding: 20, paddingTop: 56, borderBottomWidth: 1, borderBottomColor: colors.border,
+    backgroundColor: colors.card,
   },
-  title: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
-  close: { fontSize: 20, color: '#666', padding: 4 },
+  title: { fontSize: 20, fontWeight: 'bold', color: colors.text },
+  close: { fontSize: 20, color: colors.textSub, padding: 4 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { padding: 16 },
 
   row: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#2a2a4a', borderRadius: 12,
-    padding: 14, marginBottom: 8,
+    backgroundColor: colors.card, borderRadius: radius.md,
+    padding: 14, marginBottom: 8, ...shadow,
   },
-  rowMe: { borderWidth: 1.5, borderColor: '#4CAF50' },
+  rowMe: { borderWidth: 1.5, borderColor: colors.primary },
   position: { fontSize: 18, width: 36, textAlign: 'center' },
   userInfo: { flex: 1, marginLeft: 8 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  username: { fontSize: 16, fontWeight: '600', color: '#fff' },
+  username: { fontSize: 16, fontWeight: '600', color: colors.text },
   meTag: {
-    backgroundColor: '#4CAF50', borderRadius: 4,
+    backgroundColor: colors.primary, borderRadius: 4,
     paddingHorizontal: 6, paddingVertical: 1,
     fontSize: 10, color: '#fff', fontWeight: 'bold',
   },
   tier: { fontSize: 12, marginTop: 2 },
   rankInfo: { alignItems: 'flex-end' },
-  rankNum: { fontSize: 18, fontWeight: 'bold', color: '#ffd700' },
-  wl: { fontSize: 11, color: '#666', marginTop: 2 },
+  rankNum: { fontSize: 18, fontWeight: 'bold', color: colors.gold },
+  wl: { fontSize: 11, color: colors.textLight, marginTop: 2 },
 })

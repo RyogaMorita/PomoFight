@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
+import { colors, radius, shadow } from '../../lib/theme'
 
 export default function FinishScreen({ result, room, onBack }) {
   const { session, profile, fetchProfile } = useAuth()
@@ -29,7 +30,7 @@ export default function FinishScreen({ result, room, onBack }) {
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#4CAF50" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     )
   }
@@ -63,28 +64,28 @@ export default function FinishScreen({ result, room, onBack }) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, backgroundColor: '#1a1a2e',
+    flex: 1, backgroundColor: colors.bg,
     alignItems: 'center', justifyContent: 'center', padding: 24,
   },
   emoji: { fontSize: 80, marginBottom: 16 },
   result: { fontSize: 40, fontWeight: 'bold', marginBottom: 12 },
-  win: { color: '#ffd700' },
-  lose: { color: '#ff6b6b' },
-  sub: { fontSize: 16, color: '#aaa', marginBottom: 24, textAlign: 'center' },
+  win: { color: colors.gold },
+  lose: { color: colors.danger },
+  sub: { fontSize: 16, color: colors.textSub, marginBottom: 24, textAlign: 'center' },
 
   rankBox: {
-    backgroundColor: '#2a2a4a', borderRadius: 16,
-    padding: 20, alignItems: 'center', marginBottom: 32, width: '100%',
+    backgroundColor: colors.card, borderRadius: radius.lg,
+    padding: 20, alignItems: 'center', marginBottom: 32, width: '100%', ...shadow,
   },
-  rankLabel: { color: '#888', fontSize: 13, marginBottom: 6 },
+  rankLabel: { color: colors.textLight, fontSize: 13, marginBottom: 6 },
   rankChange: { fontSize: 36, fontWeight: 'bold' },
-  rankUp: { color: '#4CAF50' },
-  rankDown: { color: '#ff6b6b' },
-  rankNow: { color: '#aaa', fontSize: 14, marginTop: 8 },
+  rankUp: { color: colors.primary },
+  rankDown: { color: colors.danger },
+  rankNow: { color: colors.textSub, fontSize: 14, marginTop: 8 },
 
   button: {
-    backgroundColor: '#4CAF50', borderRadius: 12,
-    paddingVertical: 16, paddingHorizontal: 48,
+    backgroundColor: colors.primary, borderRadius: radius.md,
+    paddingVertical: 16, paddingHorizontal: 48, ...shadow,
   },
   buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 })

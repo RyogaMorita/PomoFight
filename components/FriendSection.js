@@ -5,6 +5,7 @@ import {
 } from 'react-native'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { colors, radius, shadow } from '../lib/theme'
 
 export default function FriendSection() {
   const { session, profile } = useAuth()
@@ -183,7 +184,7 @@ export default function FriendSection() {
           <TextInput
             style={styles.searchInput}
             placeholder="フレンドコードを貼り付け"
-            placeholderTextColor="#555"
+            placeholderTextColor={colors.textLight}
             value={searchCode}
             onChangeText={setSearchCode}
             autoCapitalize="none"
@@ -206,65 +207,68 @@ export default function FriendSection() {
 
 const styles = StyleSheet.create({
   container: { marginTop: 24 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#fff', marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 12 },
 
   myCode: {
-    backgroundColor: '#2a2a4a', borderRadius: 12, padding: 14, marginBottom: 16,
+    backgroundColor: colors.card, borderRadius: radius.md, padding: 14, marginBottom: 16, ...shadow,
   },
-  myCodeLabel: { fontSize: 11, color: '#888', marginBottom: 4 },
-  myCodeValue: { fontSize: 13, color: '#4CAF50', fontFamily: 'monospace', marginBottom: 4 },
-  myCodeHint: { fontSize: 11, color: '#555' },
+  myCodeLabel: { fontSize: 11, color: colors.textLight, marginBottom: 4 },
+  myCodeValue: { fontSize: 13, color: colors.primary, fontFamily: 'monospace', marginBottom: 4 },
+  myCodeHint: { fontSize: 11, color: colors.textLight },
 
   tabs: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   tabBtn: {
-    flex: 1, padding: 10, borderRadius: 10,
-    backgroundColor: '#2a2a4a', alignItems: 'center',
+    flex: 1, padding: 10, borderRadius: radius.sm,
+    backgroundColor: colors.card, alignItems: 'center',
+    borderWidth: 1, borderColor: colors.border,
   },
-  tabBtnActive: { backgroundColor: '#4CAF50' },
-  tabText: { color: '#888', fontSize: 13 },
+  tabBtnActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  tabText: { color: colors.textSub, fontSize: 13 },
   tabTextActive: { color: '#fff', fontWeight: 'bold' },
 
-  empty: { color: '#555', textAlign: 'center', padding: 20 },
+  empty: { color: colors.textLight, textAlign: 'center', padding: 20 },
 
   friendRow: {
-    backgroundColor: '#2a2a4a', borderRadius: 12, padding: 14,
+    backgroundColor: colors.card, borderRadius: radius.md, padding: 14,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 8, ...shadow,
   },
-  friendName: { fontSize: 15, fontWeight: '600', color: '#fff' },
-  friendRank: { fontSize: 12, color: '#ffd700', marginTop: 2 },
+  friendName: { fontSize: 15, fontWeight: '600', color: colors.text },
+  friendRank: { fontSize: 12, color: colors.gold, marginTop: 2 },
   battleBtn: {
-    backgroundColor: '#4CAF50', borderRadius: 8,
+    backgroundColor: colors.primary, borderRadius: radius.sm,
     paddingVertical: 6, paddingHorizontal: 12,
   },
   battleBtnText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
 
   pendingSection: { marginBottom: 16 },
-  pendingTitle: { fontSize: 13, color: '#aaa', marginBottom: 8 },
+  pendingTitle: { fontSize: 13, color: colors.textSub, marginBottom: 8 },
   pendingRow: {
-    backgroundColor: '#2a2a4a', borderRadius: 12, padding: 14,
+    backgroundColor: colors.card, borderRadius: radius.md, padding: 14,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 8, ...shadow,
   },
   pendingActions: { flexDirection: 'row', gap: 8 },
   acceptBtn: {
-    backgroundColor: '#4CAF50', borderRadius: 8,
+    backgroundColor: colors.primary, borderRadius: radius.sm,
     paddingVertical: 6, paddingHorizontal: 12,
   },
   acceptText: { color: '#fff', fontSize: 13 },
   rejectBtn: {
-    backgroundColor: '#3a3a5a', borderRadius: 8,
+    backgroundColor: colors.cardSub, borderRadius: radius.sm,
     paddingVertical: 6, paddingHorizontal: 12,
+    borderWidth: 1, borderColor: colors.border,
   },
-  rejectText: { color: '#aaa', fontSize: 13 },
+  rejectText: { color: colors.textSub, fontSize: 13 },
 
-  addLabel: { fontSize: 13, color: '#aaa', marginBottom: 8 },
+  addLabel: { fontSize: 13, color: colors.textSub, marginBottom: 8 },
   searchInput: {
-    backgroundColor: '#2a2a4a', borderRadius: 12,
-    padding: 14, color: '#fff', fontSize: 14, marginBottom: 10,
+    backgroundColor: colors.bg, borderRadius: radius.md,
+    padding: 14, color: colors.text, fontSize: 14, marginBottom: 10,
+    borderWidth: 1, borderColor: colors.border,
   },
   addBtn: {
-    backgroundColor: '#4CAF50', borderRadius: 12,
+    backgroundColor: colors.primary, borderRadius: radius.md,
     padding: 14, alignItems: 'center',
   },
   addBtnDisabled: { opacity: 0.4 },

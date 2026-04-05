@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
+import { colors, radius, shadow } from '../../lib/theme'
 
 export default function MatchingScreen({ goal, onMatched, onCancel }) {
   const { session, profile } = useAuth()
@@ -97,16 +98,17 @@ export default function MatchingScreen({ goal, onMatched, onCancel }) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, backgroundColor: '#1a1a2e',
+    flex: 1, backgroundColor: colors.bg,
     alignItems: 'center', justifyContent: 'center', padding: 24,
   },
   icon: { fontSize: 64, marginBottom: 24 },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#fff', marginBottom: 12 },
-  goal: { fontSize: 16, color: '#4CAF50', marginBottom: 8 },
-  sub: { fontSize: 14, color: '#666', marginBottom: 48 },
+  title: { fontSize: 24, fontWeight: 'bold', color: colors.text, marginBottom: 12 },
+  goal: { fontSize: 16, color: colors.primary, marginBottom: 8 },
+  sub: { fontSize: 14, color: colors.textSub, marginBottom: 48 },
   cancelButton: {
     paddingVertical: 12, paddingHorizontal: 32,
-    borderRadius: 12, borderWidth: 1, borderColor: '#3a3a5a',
+    borderRadius: radius.md, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.card,
   },
-  cancelText: { color: '#aaa', fontSize: 16 },
+  cancelText: { color: colors.textSub, fontSize: 16 },
 })

@@ -13,6 +13,7 @@ import {
   setupNotificationChannel,
 } from '../../lib/notifications'
 import TreeDisplay, { getTreeStage } from '../TreeDisplay'
+import { colors, radius, shadow } from '../../lib/theme'
 
 const POMODORO_SECONDS = 25 * 60
 const FACE_DOWN_THRESHOLD = 0.6  // z > 0.6 = 画面が下向き
@@ -341,7 +342,7 @@ function LogInput({ room, goal, onFinish, session }) {
         <TextInput
           style={styles.logInput}
           placeholder={goal}
-          placeholderTextColor="#555"
+          placeholderTextColor={colors.textLight}
           value={log}
           onChangeText={setLog}
           maxLength={50}
@@ -378,98 +379,101 @@ function LogInput({ room, goal, onFinish, session }) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, backgroundColor: '#1a1a2e',
+    flex: 1, backgroundColor: colors.bg,
     alignItems: 'center', justifyContent: 'center', padding: 24,
   },
   bigEmoji: { fontSize: 80, marginBottom: 16 },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
-  sub: { fontSize: 14, color: '#aaa', marginBottom: 24 },
-  goal: { fontSize: 16, color: '#4CAF50', marginBottom: 16 },
+  title: { fontSize: 24, fontWeight: 'bold', color: colors.text, marginBottom: 8 },
+  sub: { fontSize: 14, color: colors.textSub, marginBottom: 24 },
+  goal: { fontSize: 16, color: colors.primary, marginBottom: 16 },
 
   opponentBox: {
-    backgroundColor: '#2a2a4a', borderRadius: 12,
-    padding: 16, alignItems: 'center', marginTop: 16, width: '100%',
+    backgroundColor: colors.card, borderRadius: radius.md,
+    padding: 16, alignItems: 'center', marginTop: 16, width: '100%', ...shadow,
   },
-  opponentLabel: { fontSize: 11, color: '#666', marginBottom: 4 },
-  opponentName: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
-  opponentRank: { fontSize: 13, color: '#ffd700', marginTop: 2 },
+  opponentLabel: { fontSize: 11, color: colors.textLight, marginBottom: 4 },
+  opponentName: { fontSize: 18, fontWeight: 'bold', color: colors.text },
+  opponentRank: { fontSize: 13, color: colors.gold, marginTop: 2 },
 
   opponentCard: {
     position: 'absolute', top: 48, left: 16, right: 16,
-    backgroundColor: '#2a2a4a', borderRadius: 12,
+    backgroundColor: colors.card, borderRadius: radius.md,
     padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    ...shadow,
   },
   opponentLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  vsText: { fontSize: 12, fontWeight: 'bold', color: '#ff6b6b' },
-  opponentNameSmall: { fontSize: 15, fontWeight: 'bold', color: '#fff' },
-  opponentRankSmall: { fontSize: 11, color: '#ffd700' },
+  vsText: { fontSize: 12, fontWeight: 'bold', color: colors.danger },
+  opponentNameSmall: { fontSize: 15, fontWeight: 'bold', color: colors.text },
+  opponentRankSmall: { fontSize: 11, color: colors.gold },
   reportBtn: { fontSize: 20, padding: 4 },
 
   banner: {
     position: 'absolute', top: 52, left: 16, right: 16, zIndex: 100,
-    backgroundColor: '#4CAF50', borderRadius: 12, padding: 12, alignItems: 'center',
+    backgroundColor: colors.primary, borderRadius: radius.md, padding: 12, alignItems: 'center',
   },
   bannerText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
 
   warningBanner: {
     position: 'absolute', top: 52, left: 16, right: 16, zIndex: 100,
-    backgroundColor: '#ff4444', borderRadius: 12, padding: 12, alignItems: 'center',
+    backgroundColor: colors.danger, borderRadius: radius.md, padding: 12, alignItems: 'center',
   },
   warningText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
 
   treeWrap: { width: '100%', marginTop: 56, marginBottom: 16 },
-  statusText: { fontSize: 13, color: '#aaa', marginBottom: 8 },
-  timer: { fontSize: 56, fontWeight: 'bold', color: '#fff', fontVariant: ['tabular-nums'] },
+  statusText: { fontSize: 13, color: colors.textSub, marginBottom: 8 },
+  timer: { fontSize: 56, fontWeight: 'bold', color: colors.text, fontVariant: ['tabular-nums'] },
 
   goalBox: {
-    backgroundColor: '#2a2a4a', borderRadius: 12,
-    padding: 16, alignItems: 'center', width: '100%', marginBottom: 24,
+    backgroundColor: colors.card, borderRadius: radius.md,
+    padding: 16, alignItems: 'center', width: '100%', marginBottom: 24, ...shadow,
   },
-  goalLabel: { fontSize: 12, color: '#666', marginBottom: 4 },
-  goalText: { fontSize: 18, color: '#fff', fontWeight: '600' },
+  goalLabel: { fontSize: 12, color: colors.textLight, marginBottom: 4 },
+  goalText: { fontSize: 18, color: colors.text, fontWeight: '600' },
 
   loseButton: { paddingVertical: 12, paddingHorizontal: 32 },
-  loseText: { color: '#666', fontSize: 14 },
+  loseText: { color: colors.textLight, fontSize: 14 },
 
   // 通報モーダル
   modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.7)',
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#2a2a4a', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    backgroundColor: colors.card, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg,
     padding: 24, paddingBottom: 40,
   },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginBottom: 6 },
-  modalSub: { fontSize: 13, color: '#888', marginBottom: 16 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 6 },
+  modalSub: { fontSize: 13, color: colors.textSub, marginBottom: 16 },
   reasonBtn: {
-    backgroundColor: '#3a3a5a', borderRadius: 12,
+    backgroundColor: colors.cardSub, borderRadius: radius.md,
     padding: 14, marginBottom: 8,
+    borderWidth: 1, borderColor: colors.border,
   },
-  reasonText: { color: '#fff', fontSize: 15 },
+  reasonText: { color: colors.text, fontSize: 15 },
   cancelBtn: { padding: 14, alignItems: 'center', marginTop: 4 },
-  cancelText: { color: '#666', fontSize: 15 },
+  cancelText: { color: colors.textLight, fontSize: 15 },
 
   // ログ入力
   logBox: { width: '100%', marginBottom: 20 },
-  logLabel: { fontSize: 14, color: '#aaa', marginBottom: 8 },
+  logLabel: { fontSize: 14, color: colors.textSub, marginBottom: 8 },
   logInput: {
-    backgroundColor: '#2a2a4a', borderRadius: 12,
-    padding: 16, color: '#fff', fontSize: 16,
+    backgroundColor: colors.card, borderRadius: radius.md,
+    padding: 16, color: colors.text, fontSize: 16,
+    borderWidth: 1, borderColor: colors.border,
   },
   scoreRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 6 },
   scoreItem: {
     flex: 1, alignItems: 'center', paddingVertical: 10,
-    backgroundColor: '#2a2a4a', borderRadius: 12,
+    backgroundColor: colors.card, borderRadius: radius.md,
     borderWidth: 2, borderColor: 'transparent',
   },
-  scoreItemActive: { borderColor: '#4CAF50', backgroundColor: '#1a3a1a' },
+  scoreItemActive: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
   scoreEmoji: { fontSize: 22 },
-  scoreDesc: { fontSize: 9, color: '#aaa', marginTop: 2 },
+  scoreDesc: { fontSize: 9, color: colors.textLight, marginTop: 2 },
 
   button: {
-    width: '100%', backgroundColor: '#4CAF50',
-    borderRadius: 12, padding: 18, alignItems: 'center',
+    width: '100%', backgroundColor: colors.primary,
+    borderRadius: radius.md, padding: 18, alignItems: 'center', ...shadow,
   },
   buttonDisabled: { opacity: 0.4 },
   buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },

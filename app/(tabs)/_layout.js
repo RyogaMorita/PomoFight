@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { colors } from '../../lib/theme'
 import HomeScreen from './index'
 import BattleScreen from './battle'
 import DiaryScreen from './diary'
@@ -15,17 +16,15 @@ const TABS = [
 export default function TabLayout() {
   const [activeTab, setActiveTab] = useState('home')
   const [hideTabBar, setHideTabBar] = useState(false)
-
   const ActiveScreen = TABS.find(t => t.key === activeTab)?.component
 
   return (
     <View style={styles.container}>
       <View style={styles.screen}>
-        {ActiveScreen && (
-          activeTab === 'battle'
-            ? <BattleScreen onHideTabBar={setHideTabBar} />
-            : <ActiveScreen />
-        )}
+        {activeTab === 'battle'
+          ? <BattleScreen onHideTabBar={setHideTabBar} />
+          : <ActiveScreen />
+        }
       </View>
       {!hideTabBar && (
         <View style={styles.tabBar}>
@@ -48,12 +47,12 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a1a2e' },
+  container: { flex: 1, backgroundColor: colors.bg },
   screen: { flex: 1 },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#12122a',
-    borderTopColor: '#2a2a4a',
+    backgroundColor: colors.card,
+    borderTopColor: colors.border,
     borderTopWidth: 1,
     paddingBottom: 24,
     paddingTop: 8,
@@ -61,6 +60,6 @@ const styles = StyleSheet.create({
   },
   tabItem: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   tabEmoji: { fontSize: 20 },
-  tabLabel: { fontSize: 10, color: '#666', marginTop: 2 },
-  tabLabelActive: { color: '#4CAF50' },
+  tabLabel: { fontSize: 10, color: colors.textLight, marginTop: 2 },
+  tabLabelActive: { color: colors.primary, fontWeight: '600' },
 })

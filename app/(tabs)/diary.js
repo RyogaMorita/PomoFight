@@ -5,9 +5,9 @@ import {
 } from 'react-native'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
+import { colors, radius, shadow } from '../../lib/theme'
 
 const FOCUS_EMOJI = ['', '😵', '😕', '😐', '😊', '🔥']
-const MONTHS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
 
 function formatDate(dateStr) {
   const d = new Date(dateStr)
@@ -99,7 +99,7 @@ export default function DiaryScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color="#4CAF50" />
+        <ActivityIndicator color={colors.primary} />
       </View>
     )
   }
@@ -159,51 +159,51 @@ export default function DiaryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a1a2e' },
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 20, paddingTop: 56, paddingBottom: 40 },
-  center: { flex: 1, backgroundColor: '#1a1a2e', alignItems: 'center', justifyContent: 'center' },
-  header: { fontSize: 24, fontWeight: 'bold', color: '#fff', marginBottom: 20 },
+  center: { flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
+  header: { fontSize: 24, fontWeight: 'bold', color: colors.text, marginBottom: 20 },
 
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
   statCard: {
-    flex: 1, backgroundColor: '#2a2a4a', borderRadius: 12,
-    padding: 14, alignItems: 'center',
+    flex: 1, backgroundColor: colors.card, borderRadius: radius.md,
+    padding: 14, alignItems: 'center', ...shadow,
   },
-  statNum: { fontSize: 24, fontWeight: 'bold', color: '#4CAF50' },
-  statLabel: { fontSize: 11, color: '#888', marginTop: 2 },
+  statNum: { fontSize: 24, fontWeight: 'bold', color: colors.primary },
+  statLabel: { fontSize: 11, color: colors.textLight, marginTop: 2 },
 
   calendar: {
-    backgroundColor: '#2a2a4a', borderRadius: 12,
-    padding: 14, marginBottom: 20,
+    backgroundColor: colors.card, borderRadius: radius.md,
+    padding: 14, marginBottom: 20, ...shadow,
   },
-  calendarTitle: { fontSize: 12, color: '#888', marginBottom: 10 },
+  calendarTitle: { fontSize: 12, color: colors.textLight, marginBottom: 10 },
   calendarRow: { flexDirection: 'row', justifyContent: 'space-between' },
   dayItem: { alignItems: 'center', gap: 4 },
   dayDot: {
     width: 8, height: 8, borderRadius: 4,
-    backgroundColor: '#3a3a5a',
+    backgroundColor: colors.border,
   },
-  dayDotActive: { backgroundColor: '#4CAF50' },
-  dayDotToday: { backgroundColor: '#ffd700', width: 10, height: 10, borderRadius: 5 },
-  dayNum: { fontSize: 9, color: '#666' },
+  dayDotActive: { backgroundColor: colors.primary },
+  dayDotToday: { backgroundColor: colors.gold, width: 10, height: 10, borderRadius: 5 },
+  dayNum: { fontSize: 9, color: colors.textLight },
 
   dateHeader: {
-    fontSize: 13, color: '#888', fontWeight: '600',
+    fontSize: 13, color: colors.textSub, fontWeight: '600',
     marginBottom: 8, marginTop: 16,
   },
   logCard: {
-    backgroundColor: '#2a2a4a', borderRadius: 12,
+    backgroundColor: colors.card, borderRadius: radius.md,
     padding: 14, marginBottom: 8,
-    flexDirection: 'row', alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center', ...shadow,
   },
   logLeft: { flex: 1 },
-  logTime: { fontSize: 11, color: '#666', marginBottom: 4 },
-  logText: { fontSize: 15, color: '#fff' },
+  logTime: { fontSize: 11, color: colors.textLight, marginBottom: 4 },
+  logText: { fontSize: 15, color: colors.text },
   logRight: { alignItems: 'center', marginLeft: 12 },
   focusEmoji: { fontSize: 24 },
-  logDuration: { fontSize: 11, color: '#666', marginTop: 2 },
+  logDuration: { fontSize: 11, color: colors.textLight, marginTop: 2 },
 
   empty: { alignItems: 'center', marginTop: 60 },
   emptyEmoji: { fontSize: 48, marginBottom: 16 },
-  emptyText: { color: '#666', fontSize: 16, textAlign: 'center', lineHeight: 24 },
+  emptyText: { color: colors.textSub, fontSize: 16, textAlign: 'center', lineHeight: 24 },
 })
