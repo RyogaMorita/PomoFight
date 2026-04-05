@@ -18,7 +18,7 @@ function getProgress(total) {
   return Math.min(100, Math.round(((total - cur) / (next - cur)) * 100))
 }
 
-export default function HomeScreen({ onBattle }) {
+export default function HomeScreen() {
   const { profile } = useAuth()
   const [showRanking, setShowRanking] = useState(false)
   const [showFriends, setShowFriends] = useState(false)
@@ -79,23 +79,6 @@ export default function HomeScreen({ onBattle }) {
         <TreeDisplay totalPomodoros={total} size="large" />
       </View>
 
-      {/* ── バトル開始ボタン ── */}
-      <View style={styles.bottomSection}>
-        <TouchableOpacity style={styles.battleButton} onPress={onBattle} activeOpacity={0.85}>
-          <Text style={styles.battleButtonText}>⚔️  バトル開始</Text>
-        </TouchableOpacity>
-
-        <View style={styles.subButtons}>
-          <TouchableOpacity style={styles.subButton}>
-            <Text style={styles.subButtonEmoji}>👥</Text>
-            <Text style={styles.subButtonText}>フレンド対戦</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.subButton}>
-            <Text style={styles.subButtonEmoji}>🚪</Text>
-            <Text style={styles.subButtonText}>部屋を作る</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
     </View>
   )
 }
@@ -155,25 +138,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // ── 下部ボタン群
-  bottomSection: {
-    paddingHorizontal: 16, paddingBottom: 16, paddingTop: 8,
-    backgroundColor: colors.card,
-    borderTopWidth: 1, borderTopColor: colors.border,
-  },
-  battleButton: {
-    backgroundColor: colors.accent, borderRadius: radius.lg,
-    paddingVertical: 18, alignItems: 'center', marginBottom: 10,
-    shadowColor: colors.accent, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35, shadowRadius: 8, elevation: 6,
-  },
-  battleButtonText: { color: '#fff', fontSize: 22, fontWeight: 'bold', letterSpacing: 1 },
-  subButtons: { flexDirection: 'row', gap: 10 },
-  subButton: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, backgroundColor: colors.cardSub, borderRadius: radius.md,
-    paddingVertical: 12, borderWidth: 1, borderColor: colors.border,
-  },
-  subButtonEmoji: { fontSize: 16 },
-  subButtonText: { color: colors.textSub, fontSize: 13, fontWeight: '600' },
 })
