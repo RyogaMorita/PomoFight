@@ -4,6 +4,7 @@ import {
   ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform
 } from 'react-native'
 import { useAuth } from '../../context/AuthContext'
+import FriendSection from '../../components/FriendSection'
 
 export default function ProfileScreen() {
   const { profile, linkEmail } = useAuth()
@@ -36,6 +37,9 @@ export default function ProfileScreen() {
           }
         />
       </View>
+
+      {/* フレンド */}
+      <FriendSection />
 
       {/* アカウントバックアップ */}
       <View style={styles.backupSection}>
