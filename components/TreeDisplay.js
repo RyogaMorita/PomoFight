@@ -41,11 +41,15 @@ export default function TreeDisplay({ totalPomodoros, size = 'large' }) {
 
   return (
     <View style={styles.container}>
-      <Image
-        source={TREE_IMAGES[stage]}
-        style={isLarge ? styles.imageLarge : styles.imageSmall}
-        resizeMode="contain"
-      />
+      <View style={isLarge ? styles.imageWrapLarge : styles.imageWrapSmall}>
+        <Image
+          source={TREE_IMAGES[stage]}
+          style={isLarge ? styles.imageLarge : styles.imageSmall}
+          resizeMode="cover"
+        />
+        {/* 右下のウォーターマークを隠す */}
+        <View style={[styles.watermarkCover, isLarge ? styles.coverLarge : styles.coverSmall]} />
+      </View>
       <Text style={[styles.stageName, isLarge ? styles.stageNameLarge : styles.stageNameSmall]}>
         Stage {stage}  {STAGE_NAMES[stage]}
       </Text>
@@ -58,10 +62,16 @@ export default function TreeDisplay({ totalPomodoros, size = 'large' }) {
   )
 }
 
+
 const styles = StyleSheet.create({
   container: { alignItems: 'center' },
-  imageLarge: { width: 200, height: 200, marginBottom: 8 },
+  imageWrapLarge: { width: 200, height: 200, marginBottom: 8, overflow: 'hidden' },
+  imageWrapSmall: { width: 60, height: 60, overflow: 'hidden' },
+  imageLarge: { width: 200, height: 200 },
   imageSmall: { width: 60, height: 60 },
+  watermarkCover: { position: 'absolute', backgroundColor: '#1a1a2e' },
+  coverLarge: { width: 60, height: 24, bottom: 0, right: 0 },
+  coverSmall: { width: 20, height: 8, bottom: 0, right: 0 },
   stageName: { color: '#4CAF50', fontWeight: '600' },
   stageNameLarge: { fontSize: 16, marginBottom: 12 },
   stageNameSmall: { fontSize: 11 },
