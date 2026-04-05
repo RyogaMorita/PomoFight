@@ -19,7 +19,7 @@ export default function TabLayout() {
 
   function renderScreen() {
     switch (activeTab) {
-      case 'home':    return <HomeScreen />
+      case 'home':    return <HomeScreen onBattle={() => setActiveTab('battle')} />
       case 'battle':  return <BattleScreen onHideTabBar={setHideTabBar} />
       case 'diary':   return <DiaryScreen />
       case 'profile': return <ProfileScreen />
