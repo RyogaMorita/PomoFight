@@ -1,30 +1,12 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import RankingModal from '../../components/RankingModal'
 import FriendModal from '../../components/FriendModal'
 import TreePickerModal from '../../components/TreePickerModal'
-import { getTreeStage } from '../../components/TreeDisplay'
+import TreeDisplay, { getTreeStage } from '../../components/TreeDisplay'
 import { colors, radius, shadow } from '../../lib/theme'
-
-const TREE_IMAGES = {
-  1:  require('../../assets/trees/tree_1.png'),
-  2:  require('../../assets/trees/tree_2.png'),
-  3:  require('../../assets/trees/tree_3.png'),
-  4:  require('../../assets/trees/tree_4.png'),
-  5:  require('../../assets/trees/tree_5.png'),
-  6:  require('../../assets/trees/tree_6.png'),
-  7:  require('../../assets/trees/tree_7.png'),
-  8:  require('../../assets/trees/tree_8.png'),
-  9:  require('../../assets/trees/tree_9.png'),
-  10: require('../../assets/trees/tree_10.png'),
-}
-
-const STAGE_NAMES = [
-  '', '種', '芽吹き', '若葉', '小さな木', '成長中',
-  '立派な木', '大木', '古木', '神木', '伝説の木',
-]
 
 const TIERS = [
   { min: 2000, label: 'LEGEND',  emoji: '👑', color: '#ff6b35' },
@@ -45,14 +27,13 @@ export default function HomeScreen({ onBattle }) {
   const [showPicker, setShowPicker]   = useState(false)
   const [streak, setStreak] = useState(0)
 
-  const total    = profile?.total_pomodoros ?? 0
-  const wins     = profile?.wins ?? 0
-  const losses   = profile?.losses ?? 0
-  const rank     = profile?.rank ?? 0
-  const tier     = getTier(rank)
-  const winRate  = wins + losses > 0 ? Math.round(wins / (wins + losses) * 100) : 0
+  const total   = profile?.total_pomodoros ?? 0
+  const wins    = profile?.wins ?? 0
+  const losses  = profile?.losses ?? 0
+  const rank    = profile?.rank ?? 0
+  const tier    = getTier(rank)
+  const winRate = wins + losses > 0 ? Math.round(wins / (wins + losses) * 100) : 0
   const homeTree = profile?.home_tree ?? 1
-  const stage    = getTreeStage(total)
 
   useEffect(() => { fetchStreak() }, [])
 
@@ -93,7 +74,7 @@ export default function HomeScreen({ onBattle }) {
         onSelect={updateHomeTree}
       />
 
-      {/* ── 上部バー（CR のリソースバー相当） ── */}
+      {/* ── 上部バー ── */}
       <View style={styles.topBar}>
         <View style={styles.topLeft}>
           <Text style={styles.username}>{profile?.username ?? '---'}</Text>
@@ -119,34 +100,23 @@ export default function HomeScreen({ onBattle }) {
         </View>
       </View>
 
-      {/* ── 中央アリーナ（CR のアリーナ画像相当・タップで変更） ── */}
-      <TouchableOpacity style={styles.arenaWrap} onPress={() => setShowPicker(true)} activeOpacity={0.92}>
-        <Image
-          source={TREE_IMAGES[homeTree]}
-          style={styles.arenaImage}
-          resizeMode="cover"
-        />
-        {/* ウォーターマーク隠し */}
-        <View style={styles.watermarkCover} />
-        {/* ステージ名オーバーレイ（CR の「リーグ7」相当） */}
-        <View style={styles.stageOverlay}>
-          <Text style={styles.stageName}>
-            {STAGE_NAMES[stage]}
-          </Text>
-          <Text style={styles.stageLabel}>Stage {stage} / 10</Text>
-        </View>
-      </TouchableOpacity>
-
-      {/* ── 戦績バー（CR のチェストスロット相当） ── */}
-      <View style={styles.statsBar}>
-        <StatChip label="勝利"      value={`${wins}`}      icon="⚔️" color={colors.primary} />
-        <View style={styles.divider} />
-        <StatChip label="勝率"      value={`${winRate}%`}  icon="📊" color={colors.gold} />
-        <View style={styles.divider} />
-        <StatChip label="ポモドーロ" value={`${total}`}    icon="🍅" color={colors.accent} />
+      {/* ── 中央：木カード（タップで画像変更） ── */}
+      <View style={styles.arenaWrap}>
+        <TouchableOpacity onPress={() => setShowPicker(true)} activeOpacity={0.9} style={styles.treeTouch}>
+          <TreeDisplay totalPomodoros={total} size="large" overrideStage={homeTree} />
+        </TouchableOpacity>
       </View>
 
-      {/* ── バトル開始ボタン（CR の「バトル開始」相当） ── */}
+      {/* ── 戦績バー ── */}
+      <View style={styles.statsBar}>
+        <StatChip label="勝利"       value={`${wins}勝`}   icon="⚔️" color={colors.primary} />
+        <View style={styles.divider} />
+        <StatChip label="勝率"       value={`${winRate}%`} icon="📊" color={colors.gold} />
+        <View style={styles.divider} />
+        <StatChip label="ポモドーロ"  value={`${total}`}   icon="🍅" color={colors.accent} />
+      </View>
+
+      {/* ── バトル開始 ── */}
       <View style={styles.bottomSection}>
         <TouchableOpacity style={styles.battleButton} onPress={onBattle} activeOpacity={0.85}>
           <Text style={styles.battleButtonText}>⚔️  バトル開始</Text>
@@ -169,7 +139,6 @@ function StatChip({ label, value, icon, color }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
 
-  // 上部バー
   topBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingTop: 52, paddingBottom: 10,
@@ -202,31 +171,12 @@ const styles = StyleSheet.create({
   },
   iconBtnText: { fontSize: 16 },
 
-  // 中央アリーナ
   arenaWrap: {
-    flex: 1, width: '100%', overflow: 'hidden',
-    backgroundColor: '#d8d8d8',
+    flex: 1, paddingHorizontal: 20, paddingVertical: 16,
+    justifyContent: 'center',
   },
-  arenaImage: {
-    width: '100%', height: '100%',
-  },
-  watermarkCover: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    height: 56, backgroundColor: '#d8d8d8',
-  },
-  stageOverlay: {
-    position: 'absolute', bottom: 8, left: 0, right: 0,
-    alignItems: 'center',
-  },
-  stageName: {
-    fontSize: 22, fontWeight: '800', color: colors.text,
-    letterSpacing: 1,
-  },
-  stageLabel: {
-    fontSize: 12, color: colors.textSub, marginTop: 2,
-  },
+  treeTouch: { width: '100%' },
 
-  // 戦績バー
   statsBar: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: colors.card, paddingVertical: 8,
@@ -239,7 +189,6 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 9, color: colors.textLight, marginTop: 1 },
   divider:   { width: 1, height: 36, backgroundColor: colors.border },
 
-  // バトルボタン
   bottomSection: {
     paddingHorizontal: 16, paddingBottom: 14, paddingTop: 10,
     backgroundColor: colors.card,

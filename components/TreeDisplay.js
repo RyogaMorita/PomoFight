@@ -48,9 +48,9 @@ function getProgress(totalPomodoros, stage) {
 }
 
 // カード形式（対戦中・ホーム用）
-export default function TreeDisplay({ totalPomodoros, size = 'large' }) {
-  const stage = getTreeStage(totalPomodoros ?? 0)
-  const progress = getProgress(totalPomodoros ?? 0, stage)
+export default function TreeDisplay({ totalPomodoros, size = 'large', overrideStage }) {
+  const stage = overrideStage ?? getTreeStage(totalPomodoros ?? 0)
+  const progress = getProgress(totalPomodoros ?? 0, getTreeStage(totalPomodoros ?? 0))
   const isLarge = size === 'large'
 
   if (isLarge) {
