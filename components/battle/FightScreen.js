@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   View, Text, StyleSheet, AppState, TouchableOpacity,
-  TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Modal
+  TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Modal, Animated
 } from 'react-native'
 import { Accelerometer } from 'expo-sensors'
 import { supabase } from '../../lib/supabase'
@@ -12,13 +12,14 @@ import {
   cancelPomodorNotification,
   setupNotificationChannel,
 } from '../../lib/notifications'
+import TreeDisplay, { getTreeStage } from '../TreeDisplay'
 
 const POMODORO_SECONDS = 25 * 60
 const FACE_DOWN_THRESHOLD = -0.8
 const LEAVE_GRACE_SECONDS = 10
 
 export default function FightScreen({ room, goal, onFinish }) {
-  const { session } = useAuth()
+  const { session, profile } = useAuth()
   const [timeLeft, setTimeLeft] = useState(POMODORO_SECONDS)
   const [isFaceDown, setIsFaceDown] = useState(false)
   const [opponentLeft, setOpponentLeft] = useState(false)
@@ -26,6 +27,8 @@ export default function FightScreen({ room, goal, onFinish }) {
   const [phase, setPhase] = useState('facedown')
   const [opponent, setOpponent] = useState(null)
   const [showReport, setShowReport] = useState(false)
+  const [pomodoros, setPomodoros] = useState(profile?.total_pomodoros ?? 0)
+  const growAnim = useRef(new Animated.Value(1)).current
 
   const leaveTimer = useRef(null)
   const pomodoroTimer = useRef(null)
@@ -125,12 +128,21 @@ export default function FightScreen({ room, goal, onFinish }) {
       setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(pomodoroTimer.current)
+          growTree()
           setPhase('log')
           return 0
         }
         return prev - 1
       })
     }, 1000)
+  }
+
+  function growTree() {
+    setPomodoros(prev => prev + 1)
+    Animated.sequence([
+      Animated.timing(growAnim, { toValue: 1.15, duration: 400, useNativeDriver: true }),
+      Animated.timing(growAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+    ]).start()
   }
 
   async function handleLose(reason) {
@@ -204,6 +216,11 @@ export default function FightScreen({ room, goal, onFinish }) {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* 木 */}
+      <Animated.View style={{ transform: [{ scale: growAnim }] }}>
+        <TreeDisplay totalPomodoros={pomodoros} size="small" />
+      </Animated.View>
 
       <Text style={styles.statusText}>
         {isFaceDown ? '✅ 伏せ中' : '⚠️ スマホを伏せてください'}
