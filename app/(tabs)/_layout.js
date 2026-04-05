@@ -6,9 +6,9 @@ import BattleScreen from './battle'
 import DiaryScreen from './diary'
 import ProfileScreen from './profile'
 
-const LEFT_TABS  = [
-  { key: 'home',    label: 'ホーム',       emoji: '🏠' },
-  { key: 'diary',   label: '日記',         emoji: '📖' },
+const LEFT_TABS = [
+  { key: 'home',    label: 'ホーム', emoji: '🏠' },
+  { key: 'diary',   label: '日記',   emoji: '📖' },
 ]
 const RIGHT_TABS = [
   { key: 'profile', label: 'プロフィール', emoji: '👤' },
@@ -36,7 +36,6 @@ export default function TabLayout() {
 
       {!hideTabBar && (
         <View style={styles.tabBar}>
-          {/* 左タブ */}
           {LEFT_TABS.map(tab => (
             <SideTab
               key={tab.key}
@@ -46,19 +45,24 @@ export default function TabLayout() {
             />
           ))}
 
-          {/* 中央：バトル開始ボタン */}
+          {/* 中央バトルボタン */}
           <TouchableOpacity
-            style={[styles.battleTab, activeTab === 'battle' && styles.battleTabActive]}
+            style={[
+              styles.battleTabWrap,
+              activeTab === 'battle' ? styles.battleTabWrapActive : styles.battleTabWrapInactive,
+            ]}
             onPress={() => setActiveTab('battle')}
             activeOpacity={0.8}
           >
-            <Text style={styles.battleTabEmoji}>⚔️</Text>
-            <Text style={[styles.battleTabLabel, activeTab === 'battle' && styles.battleTabLabelActive]}>
-              バトル開始
-            </Text>
+            <View style={[
+              styles.battleTab,
+              activeTab === 'battle' && styles.battleTabActive,
+            ]}>
+              <Text style={styles.battleTabEmoji}>⚔️</Text>
+              <Text style={styles.battleTabLabel}>バトル開始</Text>
+            </View>
           </TouchableOpacity>
 
-          {/* 右タブ */}
           {RIGHT_TABS.map(tab => (
             <SideTab
               key={tab.key}
@@ -75,7 +79,11 @@ export default function TabLayout() {
 
 function SideTab({ tab, active, onPress }) {
   return (
-    <TouchableOpacity style={styles.sideTab} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={[styles.sideTab, active ? styles.sideTabActive : styles.sideTabInactive]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
       <View style={[styles.sideTabInner, active && styles.sideTabInnerActive]}>
         <Text style={styles.sideTabEmoji}>{tab.emoji}</Text>
         <Text style={[styles.sideTabLabel, active && styles.sideTabLabelActive]}>
@@ -96,13 +104,14 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     borderTopWidth: 1,
     paddingBottom: 24,
-    paddingTop: 6,
     height: 78,
-    alignItems: 'flex-start',
+    alignItems: 'flex-end',  // 下揃えにして、上への浮き上がりで差をつける
   },
 
   // サイドタブ
-  sideTab: { flex: 1, alignItems: 'center', paddingTop: 4 },
+  sideTab: { flex: 1, alignItems: 'center', paddingBottom: 4 },
+  sideTabInactive: { marginBottom: 0 },      // 通常位置
+  sideTabActive:   { marginBottom: 8 },      // アクティブ時に浮き上がる
   sideTabInner: {
     alignItems: 'center', paddingVertical: 4, paddingHorizontal: 10,
     borderRadius: radius.md, minWidth: 56,
@@ -112,14 +121,14 @@ const styles = StyleSheet.create({
   sideTabLabel: { fontSize: 10, color: colors.textLight, marginTop: 2 },
   sideTabLabelActive: { color: colors.primary, fontWeight: '700' },
 
-  // 中央バトルボタン
+  // 中央バトルボタン（ラッパーで位置制御）
+  battleTabWrap: { flex: 1.4, alignItems: 'center', paddingHorizontal: 4 },
+  battleTabWrapInactive: { paddingBottom: 4 },   // 通常位置
+  battleTabWrapActive:   { paddingBottom: 16 },  // アクティブ時に浮き上がる
+
   battleTab: {
-    flex: 1.4,
-    alignItems: 'center', justifyContent: 'center',
-    marginTop: -20,
-    marginHorizontal: 4,
-    paddingVertical: 10,
-    borderRadius: radius.lg,
+    width: '100%', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 8, borderRadius: radius.lg,
     backgroundColor: colors.accent,
     shadowColor: colors.accent,
     shadowOffset: { width: 0, height: 4 },
@@ -133,5 +142,4 @@ const styles = StyleSheet.create({
   },
   battleTabEmoji: { fontSize: 22 },
   battleTabLabel: { fontSize: 11, color: '#fff', fontWeight: '800', marginTop: 2 },
-  battleTabLabelActive: { color: '#fff' },
 })
