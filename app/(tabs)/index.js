@@ -3,20 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { useRouter } from 'expo-router'
 import { useAuth } from '../../context/AuthContext'
 import RankingModal from '../../components/RankingModal'
-
-// 木のレベルに応じた表示（画像できたら差し替え）
-function TreeDisplay({ level }) {
-  const treeEmojis = ['🌱', '🌿', '🪴', '🌳', '🌲', '🎄', '🌴', '🎋']
-  const index = Math.min(Math.floor(level / 10), treeEmojis.length - 1)
-  return (
-    <View style={styles.treeContainer}>
-      {/* 画像できたら↓に差し替え */}
-      {/* <Image source={require('../../assets/trees/level_${level}.png')} style={styles.treeImage} /> */}
-      <Text style={styles.treeEmoji}>{treeEmojis[index]}</Text>
-      <Text style={styles.treeLevel}>Lv.{level} の木</Text>
-    </View>
-  )
-}
+import TreeDisplay from '../../components/TreeDisplay'
 
 function StatBadge({ label, value }) {
   return (
@@ -32,7 +19,6 @@ export default function HomeScreen() {
   const router = useRouter()
   const [showRanking, setShowRanking] = useState(false)
 
-  const treeLevel = Math.floor((profile?.total_pomodoros ?? 0) / 5)
   const wins = profile?.wins ?? 0
   const losses = profile?.losses ?? 0
 
@@ -58,7 +44,9 @@ export default function HomeScreen() {
       </View>
 
       {/* 木 */}
-      <TreeDisplay level={treeLevel} />
+      <View style={styles.treeContainer}>
+        <TreeDisplay totalPomodoros={profile?.total_pomodoros ?? 0} size="large" />
+      </View>
 
       {/* 戦績 */}
       <View style={styles.statsRow}>
@@ -106,9 +94,7 @@ const styles = StyleSheet.create({
   pomodoroLabel: { fontSize: 12, color: '#aaa' },
   rankingBtn: { fontSize: 13, color: '#4CAF50' },
 
-  treeContainer: { alignItems: 'center', marginVertical: 32 },
-  treeEmoji: { fontSize: 120 },
-  treeLevel: { fontSize: 16, color: '#4CAF50', marginTop: 8, fontWeight: '600' },
+  treeContainer: { alignItems: 'center', marginVertical: 24 },
 
   statsRow: {
     flexDirection: 'row', justifyContent: 'space-around',
