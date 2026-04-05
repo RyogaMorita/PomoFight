@@ -18,6 +18,7 @@ import { colors, radius, shadow } from '../../lib/theme'
 const POMODORO_SECONDS = 25 * 60
 const FACE_DOWN_THRESHOLD = 0.6  // z > 0.6 = 画面が下向き
 const LEAVE_GRACE_SECONDS = 10
+const FACEDOWN_LIMIT = 10  // 伏せ猶予秒数
 
 export default function FightScreen({ room, goal, onFinish }) {
   const { session, profile } = useAuth()
@@ -26,6 +27,7 @@ export default function FightScreen({ room, goal, onFinish }) {
   const [opponentLeft, setOpponentLeft] = useState(false)
   const [leaveWarning, setLeaveWarning] = useState(0)
   const [phase, setPhase] = useState('facedown')
+  const [facedownCount, setFacedownCount] = useState(FACEDOWN_LIMIT)
   const [opponent, setOpponent] = useState(null)
   const [showReport, setShowReport] = useState(false)
   const [pomodoros, setPomodoros] = useState(profile?.total_pomodoros ?? 0)
@@ -33,6 +35,7 @@ export default function FightScreen({ room, goal, onFinish }) {
 
   const leaveTimer = useRef(null)
   const pomodoroTimer = useRef(null)
+  const facedownTimer = useRef(null)
   const appState = useRef(AppState.currentState)
 
   useEffect(() => {
@@ -40,6 +43,7 @@ export default function FightScreen({ room, goal, onFinish }) {
     requestNotificationPermission()
     if (!room.isTest) fetchOpponent()
     setupListeners()
+    startFacedownTimer()
     return () => cleanup()
   }, [])
 
@@ -89,8 +93,30 @@ export default function FightScreen({ room, goal, onFinish }) {
     return () => { accelSub.remove(); appStateSub.remove(); channel.unsubscribe() }
   }
 
+  function startFacedownTimer() {
+    facedownTimer.current = setInterval(() => {
+      setFacedownCount(prev => {
+        if (prev <= 1) {
+          clearInterval(facedownTimer.current)
+          facedownTimer.current = null
+          handleLose('伏せ失格')
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
+  function stopFacedownTimer() {
+    if (facedownTimer.current) {
+      clearInterval(facedownTimer.current)
+      facedownTimer.current = null
+    }
+  }
+
   function cleanup() {
     clearLeaveTimer()
+    stopFacedownTimer()
     if (pomodoroTimer.current) clearInterval(pomodoroTimer.current)
     Accelerometer.removeAllListeners()
     cancelPomodorNotification()
@@ -118,6 +144,7 @@ export default function FightScreen({ room, goal, onFinish }) {
 
   useEffect(() => {
     if (isFaceDown && phase === 'facedown') {
+      stopFacedownTimer()
       setPhase('fighting')
       startPomodoro()
     }
@@ -168,7 +195,13 @@ export default function FightScreen({ room, goal, onFinish }) {
       <View style={styles.container}>
         <Text style={styles.bigEmoji}>📱</Text>
         <Text style={styles.title}>スマホを伏せてください</Text>
-        <Text style={styles.sub}>10秒以内に伏せないと失格</Text>
+        <Text style={styles.sub}>伏せないと失格になります</Text>
+        <Text style={[
+          styles.facedownCount,
+          facedownCount <= 3 && styles.facedownCountDanger,
+        ]}>
+          {facedownCount}
+        </Text>
         <Text style={styles.goal}>目的: {goal}</Text>
         {opponent && (
           <View style={styles.opponentBox}>
@@ -384,8 +417,13 @@ const styles = StyleSheet.create({
   },
   bigEmoji: { fontSize: 80, marginBottom: 16 },
   title: { fontSize: 24, fontWeight: 'bold', color: colors.text, marginBottom: 8 },
-  sub: { fontSize: 14, color: colors.textSub, marginBottom: 24 },
+  sub: { fontSize: 14, color: colors.textSub, marginBottom: 16 },
   goal: { fontSize: 16, color: colors.primary, marginBottom: 16 },
+  facedownCount: {
+    fontSize: 80, fontWeight: 'bold', color: colors.primary,
+    marginBottom: 16, fontVariant: ['tabular-nums'],
+  },
+  facedownCountDanger: { color: colors.danger },
 
   opponentBox: {
     backgroundColor: colors.card, borderRadius: radius.md,
