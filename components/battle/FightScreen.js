@@ -217,9 +217,9 @@ export default function FightScreen({ room, goal, onFinish }) {
         </View>
       )}
 
-      {/* 木 */}
-      <Animated.View style={{ transform: [{ scale: growAnim }] }}>
-        <TreeDisplay totalPomodoros={pomodoros} size="small" />
+      {/* 木（大きく中央） */}
+      <Animated.View style={[styles.treeWrap, { transform: [{ scale: growAnim }] }]}>
+        <TreeDisplay totalPomodoros={pomodoros} size="large" />
       </Animated.View>
 
       <Text style={styles.statusText}>
@@ -227,10 +227,9 @@ export default function FightScreen({ room, goal, onFinish }) {
       </Text>
 
       <Text style={styles.timer}>{formatTime(timeLeft)}</Text>
-      <Text style={styles.timerLabel}>ポモドーロ残り時間</Text>
 
       <View style={styles.goalBox}>
-        <Text style={styles.goalLabel}>今回の目的</Text>
+        <Text style={styles.goalLabel}>目的</Text>
         <Text style={styles.goalText}>{goal}</Text>
       </View>
 
@@ -418,9 +417,9 @@ const styles = StyleSheet.create({
   },
   warningText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
 
-  statusText: { fontSize: 14, color: '#aaa', marginBottom: 16, marginTop: 60 },
-  timer: { fontSize: 72, fontWeight: 'bold', color: '#fff', fontVariant: ['tabular-nums'] },
-  timerLabel: { fontSize: 14, color: '#666', marginBottom: 32 },
+  treeWrap: { width: '100%', marginTop: 56, marginBottom: 16 },
+  statusText: { fontSize: 13, color: '#aaa', marginBottom: 8 },
+  timer: { fontSize: 56, fontWeight: 'bold', color: '#fff', fontVariant: ['tabular-nums'] },
 
   goalBox: {
     backgroundColor: '#2a2a4a', borderRadius: 12,
