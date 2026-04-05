@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import RankingModal from '../../components/RankingModal'
 import FriendModal from '../../components/FriendModal'
-import TreeDisplay, { getTreeStage } from '../../components/TreeDisplay'
+import { getTreeStage } from '../../components/TreeDisplay'
 import { colors, radius, shadow } from '../../lib/theme'
 
 const TIERS = [
@@ -101,11 +101,6 @@ export default function HomeScreen({ onBattle }) {
         <StatChip label="ポモドーロ" value={`${total}`} color={colors.accent} />
       </View>
 
-      {/* ── 中央：木 ── */}
-      <View style={styles.arenaWrap}>
-        <TreeDisplay totalPomodoros={total} size="large" />
-      </View>
-
       {/* ── バトル開始ボタン ── */}
       <View style={styles.bottomSection}>
         <TouchableOpacity style={styles.battleButton} onPress={onBattle} activeOpacity={0.85}>
@@ -173,15 +168,10 @@ const styles = StyleSheet.create({
   statLabel:   { fontSize: 9, color: colors.textLight, marginTop: 1 },
   statsDivider: { width: 1, height: 28, backgroundColor: colors.border },
 
-  // 中央
-  arenaWrap: {
-    flex: 1, paddingHorizontal: 20, paddingVertical: 12,
-    justifyContent: 'center',
-  },
-
   // バトルボタン
   bottomSection: {
     paddingHorizontal: 16, paddingBottom: 12, paddingTop: 8,
+    marginTop: 'auto',
     backgroundColor: colors.card,
     borderTopWidth: 1, borderTopColor: colors.border,
   },
