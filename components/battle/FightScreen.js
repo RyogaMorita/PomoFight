@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   View, Text, StyleSheet, AppState, TouchableOpacity,
-  TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Modal, Animated
+  TextInput, KeyboardAvoidingView, Platform, ActivityIndicator,
+  Alert, Modal, Animated, Vibration
 } from 'react-native'
 import { Accelerometer } from 'expo-sensors'
 import { supabase } from '../../lib/supabase'
@@ -18,7 +19,8 @@ import { colors, radius, shadow } from '../../lib/theme'
 const POMODORO_SECONDS = 25 * 60
 const FACE_DOWN_THRESHOLD = 0.6  // z > 0.6 = 画面が下向き
 const LEAVE_GRACE_SECONDS = 10
-const FACEDOWN_LIMIT = 10  // 伏せ猶予秒数
+const FACEDOWN_LIMIT = 10   // 開始前の伏せ猶予
+const FACEUP_GRACE = 10     // 対戦中の起き上がり猶予
 
 export default function FightScreen({ room, goal, onFinish }) {
   const { session, profile } = useAuth()
@@ -28,6 +30,7 @@ export default function FightScreen({ room, goal, onFinish }) {
   const [leaveWarning, setLeaveWarning] = useState(0)
   const [phase, setPhase] = useState('facedown')
   const [facedownCount, setFacedownCount] = useState(FACEDOWN_LIMIT)
+  const [faceupCount, setFaceupCount] = useState(FACEUP_GRACE)   // 対戦中の残り猶予
   const [opponent, setOpponent] = useState(null)
   const [showReport, setShowReport] = useState(false)
   const [pomodoros, setPomodoros] = useState(profile?.total_pomodoros ?? 0)
@@ -36,6 +39,7 @@ export default function FightScreen({ room, goal, onFinish }) {
   const leaveTimer = useRef(null)
   const pomodoroTimer = useRef(null)
   const facedownTimer = useRef(null)
+  const faceupTimer = useRef(null)
   const appState = useRef(AppState.currentState)
 
   useEffect(() => {
@@ -93,6 +97,7 @@ export default function FightScreen({ room, goal, onFinish }) {
     return () => { accelSub.remove(); appStateSub.remove(); channel.unsubscribe() }
   }
 
+  // ── 開始前：10秒伏せ猶予 ──────────────────────────
   function startFacedownTimer() {
     facedownTimer.current = setInterval(() => {
       setFacedownCount(prev => {
@@ -114,12 +119,41 @@ export default function FightScreen({ room, goal, onFinish }) {
     }
   }
 
+  // ── 対戦中：起き上がり猶予 ────────────────────────
+  function startFaceupTimer() {
+    Vibration.vibrate([0, 300, 200, 300])  // 最初に警告バイブ
+    faceupTimer.current = setInterval(() => {
+      setFaceupCount(prev => {
+        const next = prev - 1
+        Vibration.vibrate(100)  // 毎秒バイブ
+        if (next <= 0) {
+          clearInterval(faceupTimer.current)
+          faceupTimer.current = null
+          handleLose('伏せ解除')
+          return 0
+        }
+        return next
+      })
+    }, 1000)
+  }
+
+  function stopFaceupTimer() {
+    if (faceupTimer.current) {
+      clearInterval(faceupTimer.current)
+      faceupTimer.current = null
+      Vibration.cancel()
+      setFaceupCount(FACEUP_GRACE)
+    }
+  }
+
   function cleanup() {
     clearLeaveTimer()
     stopFacedownTimer()
+    stopFaceupTimer()
     if (pomodoroTimer.current) clearInterval(pomodoroTimer.current)
     Accelerometer.removeAllListeners()
     cancelPomodorNotification()
+    Vibration.cancel()
   }
 
   function startLeaveTimer() {
@@ -142,11 +176,27 @@ export default function FightScreen({ room, goal, onFinish }) {
     }
   }
 
+  // ── 伏せ状態の変化を監視 ─────────────────────────
   useEffect(() => {
-    if (isFaceDown && phase === 'facedown') {
-      stopFacedownTimer()
-      setPhase('fighting')
-      startPomodoro()
+    if (phase === 'facedown') {
+      // 開始前：伏せたらポモドーロ開始
+      if (isFaceDown) {
+        stopFacedownTimer()
+        setPhase('fighting')
+        startPomodoro()
+      }
+    } else if (phase === 'fighting') {
+      if (!isFaceDown) {
+        // 起き上がった → 猶予タイマー開始（まだ動いてなければ）
+        if (!faceupTimer.current) {
+          startFaceupTimer()
+        }
+      } else {
+        // 伏せ直した → 猶予タイマー解除
+        if (faceupTimer.current) {
+          stopFaceupTimer()
+        }
+      }
     }
   }, [isFaceDown, phase])
 
@@ -190,6 +240,7 @@ export default function FightScreen({ room, goal, onFinish }) {
     return `${m}:${s}`
   }
 
+  // ── 開始前フェーズ ────────────────────────────────
   if (phase === 'facedown') {
     return (
       <View style={styles.container}>
@@ -198,7 +249,7 @@ export default function FightScreen({ room, goal, onFinish }) {
         <Text style={styles.sub}>伏せないと失格になります</Text>
         <Text style={[
           styles.facedownCount,
-          facedownCount <= 3 && styles.facedownCountDanger,
+          facedownCount <= 3 && styles.countDanger,
         ]}>
           {facedownCount}
         </Text>
@@ -218,19 +269,33 @@ export default function FightScreen({ room, goal, onFinish }) {
     return <LogInput room={room} goal={goal} onFinish={onFinish} session={session} />
   }
 
+  // ── 対戦中フェーズ ────────────────────────────────
+  const isFaceupWarning = faceupTimer.current !== null
+
   return (
     <View style={styles.container}>
 
-      {/* 勝利・警告バナー（最前面に固定） */}
+      {/* 勝利バナー */}
       {opponentLeft && (
         <View style={styles.banner}>
           <Text style={styles.bannerText}>🎉 相手が離脱しました！勝利！</Text>
         </View>
       )}
+
+      {/* アプリ離脱警告 */}
       {leaveWarning > 0 && (
         <View style={styles.warningBanner}>
           <Text style={styles.warningText}>
             ⚠️ アプリを離れています！{LEAVE_GRACE_SECONDS - leaveWarning}秒で失格
+          </Text>
+        </View>
+      )}
+
+      {/* 伏せ解除警告 */}
+      {isFaceupWarning && (
+        <View style={styles.warningBanner}>
+          <Text style={styles.warningText}>
+            📱 スマホを伏せてください！{faceupCount}秒で失格
           </Text>
         </View>
       )}
@@ -256,9 +321,16 @@ export default function FightScreen({ room, goal, onFinish }) {
         <TreeDisplay totalPomodoros={pomodoros} size="large" />
       </Animated.View>
 
-      <Text style={styles.statusText}>
-        {isFaceDown ? '✅ 伏せ中' : '⚠️ スマホを伏せてください'}
-      </Text>
+      {/* 伏せ状態 or カウントダウン */}
+      {isFaceupWarning ? (
+        <Text style={[styles.faceupCount, faceupCount <= 3 && styles.countDanger]}>
+          {faceupCount}
+        </Text>
+      ) : (
+        <Text style={styles.statusText}>
+          {isFaceDown ? '✅ 伏せ中' : '⚠️ スマホを伏せてください'}
+        </Text>
+      )}
 
       <Text style={styles.timer}>{formatTime(timeLeft)}</Text>
 
@@ -419,11 +491,18 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: 'bold', color: colors.text, marginBottom: 8 },
   sub: { fontSize: 14, color: colors.textSub, marginBottom: 16 },
   goal: { fontSize: 16, color: colors.primary, marginBottom: 16 },
+
+  // 開始前カウントダウン
   facedownCount: {
     fontSize: 80, fontWeight: 'bold', color: colors.primary,
     marginBottom: 16, fontVariant: ['tabular-nums'],
   },
-  facedownCountDanger: { color: colors.danger },
+  // 対戦中カウントダウン
+  faceupCount: {
+    fontSize: 48, fontWeight: 'bold', color: colors.danger,
+    marginBottom: 8, fontVariant: ['tabular-nums'],
+  },
+  countDanger: { color: colors.danger },
 
   opponentBox: {
     backgroundColor: colors.card, borderRadius: radius.md,
