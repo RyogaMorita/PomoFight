@@ -21,6 +21,11 @@ const TREE_IMAGES = {
   10: require('../../assets/trees/tree_10.png'),
 }
 
+const STAGE_NAMES = [
+  '', '種', '芽吹き', '若葉', '小さな木', '成長中',
+  '立派な木', '大木', '古木', '神木', '伝説の木',
+]
+
 const TIERS = [
   { min: 2000, label: 'LEGEND',  emoji: '👑', color: '#ff6b35' },
   { min: 1500, label: 'DIAMOND', emoji: '💎', color: '#00bcd4' },
@@ -37,7 +42,7 @@ export default function HomeScreen({ onBattle }) {
   const { profile, session, updateHomeTree } = useAuth()
   const [showRanking, setShowRanking] = useState(false)
   const [showFriends, setShowFriends] = useState(false)
-  const [showPicker, setShowPicker] = useState(false)
+  const [showPicker, setShowPicker]   = useState(false)
   const [streak, setStreak] = useState(0)
 
   const total    = profile?.total_pomodoros ?? 0
@@ -47,6 +52,7 @@ export default function HomeScreen({ onBattle }) {
   const tier     = getTier(rank)
   const winRate  = wins + losses > 0 ? Math.round(wins / (wins + losses) * 100) : 0
   const homeTree = profile?.home_tree ?? 1
+  const stage    = getTreeStage(total)
 
   useEffect(() => { fetchStreak() }, [])
 
@@ -59,12 +65,10 @@ export default function HomeScreen({ onBattle }) {
       .order('created_at', { ascending: false })
       .limit(60)
     if (!data) return
-
     const dates = [...new Set(data.map(l => {
       const d = new Date(l.created_at)
       return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
     }))]
-
     let count = 0
     const today = new Date()
     for (let i = 0; i < dates.length; i++) {
@@ -89,9 +93,9 @@ export default function HomeScreen({ onBattle }) {
         onSelect={updateHomeTree}
       />
 
-      {/* ── プレイヤーバー ── */}
-      <View style={styles.playerBar}>
-        <View style={styles.playerLeft}>
+      {/* ── 上部バー（CR のリソースバー相当） ── */}
+      <View style={styles.topBar}>
+        <View style={styles.topLeft}>
           <Text style={styles.username}>{profile?.username ?? '---'}</Text>
           <View style={[styles.tierBadge, { borderColor: tier.color }]}>
             <Text style={styles.tierEmoji}>{tier.emoji}</Text>
@@ -99,7 +103,7 @@ export default function HomeScreen({ onBattle }) {
             <Text style={[styles.tierNum,   { color: tier.color }]}>{rank}</Text>
           </View>
         </View>
-        <View style={styles.playerRight}>
+        <View style={styles.topRight}>
           {streak > 0 && (
             <View style={styles.streakBadge}>
               <Text style={styles.streakFire}>🔥</Text>
@@ -115,31 +119,34 @@ export default function HomeScreen({ onBattle }) {
         </View>
       </View>
 
-      {/* ── 勝績バー ── */}
-      <View style={styles.statsBar}>
-        <StatChip label="勝利"     value={`${wins}勝`}    color={colors.primary} />
-        <View style={styles.statsDivider} />
-        <StatChip label="勝率"     value={`${winRate}%`}  color={colors.gold} />
-        <View style={styles.statsDivider} />
-        <StatChip label="ポモドーロ" value={`${total}`}   color={colors.accent} />
-      </View>
-
-      {/* ── 中央：選択画像 ── */}
-      <View style={styles.arenaWrap}>
-        <View style={styles.imageWrap}>
-          <Image
-            source={TREE_IMAGES[homeTree]}
-            style={styles.arenaImage}
-            resizeMode="cover"
-          />
-          <View style={styles.watermarkCover} />
+      {/* ── 中央アリーナ（CR のアリーナ画像相当・タップで変更） ── */}
+      <TouchableOpacity style={styles.arenaWrap} onPress={() => setShowPicker(true)} activeOpacity={0.92}>
+        <Image
+          source={TREE_IMAGES[homeTree]}
+          style={styles.arenaImage}
+          resizeMode="cover"
+        />
+        {/* ウォーターマーク隠し */}
+        <View style={styles.watermarkCover} />
+        {/* ステージ名オーバーレイ（CR の「リーグ7」相当） */}
+        <View style={styles.stageOverlay}>
+          <Text style={styles.stageName}>
+            {STAGE_NAMES[stage]}
+          </Text>
+          <Text style={styles.stageLabel}>Stage {stage} / 10</Text>
         </View>
-        <TouchableOpacity style={styles.changeBtn} onPress={() => setShowPicker(true)}>
-          <Text style={styles.changeBtnText}>🎨 画像を変える</Text>
-        </TouchableOpacity>
+      </TouchableOpacity>
+
+      {/* ── 戦績バー（CR のチェストスロット相当） ── */}
+      <View style={styles.statsBar}>
+        <StatChip label="勝利"      value={`${wins}`}      icon="⚔️" color={colors.primary} />
+        <View style={styles.divider} />
+        <StatChip label="勝率"      value={`${winRate}%`}  icon="📊" color={colors.gold} />
+        <View style={styles.divider} />
+        <StatChip label="ポモドーロ" value={`${total}`}    icon="🍅" color={colors.accent} />
       </View>
 
-      {/* ── バトル開始ボタン ── */}
+      {/* ── バトル開始ボタン（CR の「バトル開始」相当） ── */}
       <View style={styles.bottomSection}>
         <TouchableOpacity style={styles.battleButton} onPress={onBattle} activeOpacity={0.85}>
           <Text style={styles.battleButtonText}>⚔️  バトル開始</Text>
@@ -149,9 +156,10 @@ export default function HomeScreen({ onBattle }) {
   )
 }
 
-function StatChip({ label, value, color }) {
+function StatChip({ label, value, icon, color }) {
   return (
     <View style={styles.statChip}>
+      <Text style={styles.statIcon}>{icon}</Text>
       <Text style={[styles.statValue, { color }]}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
@@ -161,73 +169,80 @@ function StatChip({ label, value, color }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
 
-  playerBar: {
+  // 上部バー
+  topBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingTop: 52, paddingBottom: 12,
+    paddingHorizontal: 16, paddingTop: 52, paddingBottom: 10,
     backgroundColor: colors.card,
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  playerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  username:   { fontSize: 18, fontWeight: 'bold', color: colors.text },
+  topLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  username: { fontSize: 17, fontWeight: 'bold', color: colors.text },
   tierBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
     borderWidth: 1.5, borderRadius: radius.full,
     paddingVertical: 2, paddingHorizontal: 8,
   },
-  tierEmoji: { fontSize: 13 },
-  tierLabel: { fontSize: 11, fontWeight: '800' },
-  tierNum:   { fontSize: 11, fontWeight: '600' },
-  playerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  tierEmoji: { fontSize: 12 },
+  tierLabel: { fontSize: 10, fontWeight: '800' },
+  tierNum:   { fontSize: 10, fontWeight: '600' },
+  topRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   streakBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 2,
     backgroundColor: '#fff3e0', borderRadius: radius.full,
-    paddingVertical: 4, paddingHorizontal: 8,
+    paddingVertical: 3, paddingHorizontal: 7,
     borderWidth: 1, borderColor: '#ffcc02',
   },
-  streakFire: { fontSize: 14 },
-  streakNum:  { fontSize: 14, fontWeight: '800', color: '#e65100' },
+  streakFire: { fontSize: 13 },
+  streakNum:  { fontSize: 13, fontWeight: '800', color: '#e65100' },
   iconBtn: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 34, height: 34, borderRadius: 17,
     backgroundColor: colors.cardSub, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: colors.border,
   },
   iconBtnText: { fontSize: 16 },
 
-  statsBar: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: colors.card, paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: colors.border,
-  },
-  statChip:     { flex: 1, alignItems: 'center' },
-  statValue:    { fontSize: 15, fontWeight: '800' },
-  statLabel:    { fontSize: 9, color: colors.textLight, marginTop: 1 },
-  statsDivider: { width: 1, height: 28, backgroundColor: colors.border },
-
-  // 中央画像
+  // 中央アリーナ
   arenaWrap: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 16,
+    flex: 1, width: '100%', overflow: 'hidden',
+    backgroundColor: '#d8d8d8',
   },
-  imageWrap: {
-    width: 220, height: 220, borderRadius: 20,
-    overflow: 'hidden', backgroundColor: '#d8d8d8', ...shadow,
+  arenaImage: {
+    width: '100%', height: '100%',
   },
-  arenaImage: { width: 220, height: 220 },
   watermarkCover: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    height: 28, backgroundColor: '#d8d8d8',
+    height: 56, backgroundColor: '#d8d8d8',
   },
-  changeBtn: {
-    marginTop: 14, paddingVertical: 8, paddingHorizontal: 20,
-    backgroundColor: colors.card, borderRadius: radius.full,
-    borderWidth: 1, borderColor: colors.border,
+  stageOverlay: {
+    position: 'absolute', bottom: 8, left: 0, right: 0,
+    alignItems: 'center',
   },
-  changeBtnText: { fontSize: 13, color: colors.textSub, fontWeight: '600' },
+  stageName: {
+    fontSize: 22, fontWeight: '800', color: colors.text,
+    letterSpacing: 1,
+  },
+  stageLabel: {
+    fontSize: 12, color: colors.textSub, marginTop: 2,
+  },
 
-  bottomSection: {
-    paddingHorizontal: 16, paddingBottom: 12, paddingTop: 8,
-    backgroundColor: colors.card,
+  // 戦績バー
+  statsBar: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: colors.card, paddingVertical: 8,
     borderTopWidth: 1, borderTopColor: colors.border,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  statChip:  { flex: 1, alignItems: 'center', paddingVertical: 4 },
+  statIcon:  { fontSize: 16, marginBottom: 2 },
+  statValue: { fontSize: 16, fontWeight: '800' },
+  statLabel: { fontSize: 9, color: colors.textLight, marginTop: 1 },
+  divider:   { width: 1, height: 36, backgroundColor: colors.border },
+
+  // バトルボタン
+  bottomSection: {
+    paddingHorizontal: 16, paddingBottom: 14, paddingTop: 10,
+    backgroundColor: colors.card,
   },
   battleButton: {
     backgroundColor: colors.primary, borderRadius: radius.lg,
