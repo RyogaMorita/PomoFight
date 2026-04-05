@@ -1,17 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import GoalScreen from '../../components/battle/GoalScreen'
 import MatchingScreen from '../../components/battle/MatchingScreen'
 import FightScreen from '../../components/battle/FightScreen'
 import FinishScreen from '../../components/battle/FinishScreen'
 
-// バトルの状態管理
-// goal → matching → fighting → finish
-
-export default function BattleTab() {
-  const [phase, setPhase] = useState('goal') // goal | matching | fighting | finish
+export default function BattleTab({ onHideTabBar }) {
+  const [phase, setPhase] = useState('goal')
   const [goal, setGoal] = useState('')
   const [room, setRoom] = useState(null)
-  const [result, setResult] = useState(null) // win | lose
+  const [result, setResult] = useState(null)
+
+  // タブバーの表示制御
+  useEffect(() => {
+    const hide = phase === 'matching' || phase === 'fighting'
+    onHideTabBar?.(hide)
+  }, [phase])
 
   if (phase === 'goal') {
     return (

@@ -14,27 +14,35 @@ const TABS = [
 
 export default function TabLayout() {
   const [activeTab, setActiveTab] = useState('home')
+  const [hideTabBar, setHideTabBar] = useState(false)
+
   const ActiveScreen = TABS.find(t => t.key === activeTab)?.component
 
   return (
     <View style={styles.container}>
       <View style={styles.screen}>
-        {ActiveScreen && <ActiveScreen />}
+        {ActiveScreen && (
+          activeTab === 'battle'
+            ? <BattleScreen onHideTabBar={setHideTabBar} />
+            : <ActiveScreen />
+        )}
       </View>
-      <View style={styles.tabBar}>
-        {TABS.map(tab => (
-          <TouchableOpacity
-            key={tab.key}
-            style={styles.tabItem}
-            onPress={() => setActiveTab(tab.key)}
-          >
-            <Text style={styles.tabEmoji}>{tab.emoji}</Text>
-            <Text style={[styles.tabLabel, activeTab === tab.key && styles.tabLabelActive]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {!hideTabBar && (
+        <View style={styles.tabBar}>
+          {TABS.map(tab => (
+            <TouchableOpacity
+              key={tab.key}
+              style={styles.tabItem}
+              onPress={() => setActiveTab(tab.key)}
+            >
+              <Text style={styles.tabEmoji}>{tab.emoji}</Text>
+              <Text style={[styles.tabLabel, activeTab === tab.key && styles.tabLabelActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
     </View>
   )
 }

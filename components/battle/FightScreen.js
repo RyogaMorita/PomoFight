@@ -15,7 +15,7 @@ import {
 import TreeDisplay, { getTreeStage } from '../TreeDisplay'
 
 const POMODORO_SECONDS = 25 * 60
-const FACE_DOWN_THRESHOLD = -0.8
+const FACE_DOWN_THRESHOLD = 0.6  // z > 0.6 = 画面が下向き
 const LEAVE_GRACE_SECONDS = 10
 
 export default function FightScreen({ room, goal, onFinish }) {
@@ -55,7 +55,7 @@ export default function FightScreen({ room, goal, onFinish }) {
   function setupListeners() {
     Accelerometer.setUpdateInterval(500)
     const accelSub = Accelerometer.addListener(({ z }) => {
-      setIsFaceDown(z < FACE_DOWN_THRESHOLD)
+      setIsFaceDown(z > FACE_DOWN_THRESHOLD)
     })
 
     const appStateSub = AppState.addEventListener('change', nextState => {
@@ -187,12 +187,12 @@ export default function FightScreen({ room, goal, onFinish }) {
   return (
     <View style={styles.container}>
 
+      {/* 勝利・警告バナー（最前面に固定） */}
       {opponentLeft && (
         <View style={styles.banner}>
           <Text style={styles.bannerText}>🎉 相手が離脱しました！勝利！</Text>
         </View>
       )}
-
       {leaveWarning > 0 && (
         <View style={styles.warningBanner}>
           <Text style={styles.warningText}>
@@ -406,13 +406,13 @@ const styles = StyleSheet.create({
   reportBtn: { fontSize: 20, padding: 4 },
 
   banner: {
-    position: 'absolute', top: 110, left: 16, right: 16,
+    position: 'absolute', top: 52, left: 16, right: 16, zIndex: 100,
     backgroundColor: '#4CAF50', borderRadius: 12, padding: 12, alignItems: 'center',
   },
   bannerText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
 
   warningBanner: {
-    position: 'absolute', top: 110, left: 16, right: 16,
+    position: 'absolute', top: 52, left: 16, right: 16, zIndex: 100,
     backgroundColor: '#ff4444', borderRadius: 12, padding: 12, alignItems: 'center',
   },
   warningText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
