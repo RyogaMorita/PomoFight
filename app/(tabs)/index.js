@@ -1,14 +1,24 @@
-import { useState } from 'react'
-import {
-  View, Text, StyleSheet, TouchableOpacity, Animated
-} from 'react-native'
+import { useState, useEffect } from 'react'
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { useAuth } from '../../context/AuthContext'
+import { supabase } from '../../lib/supabase'
 import RankingModal from '../../components/RankingModal'
 import FriendModal from '../../components/FriendModal'
 import TreeDisplay, { getTreeStage } from '../../components/TreeDisplay'
 import { colors, radius, shadow } from '../../lib/theme'
 
-// 次のステージまでの進捗
+const TIERS = [
+  { min: 2000, label: 'LEGEND',  emoji: '👑', color: '#ff6b35' },
+  { min: 1500, label: 'DIAMOND', emoji: '💎', color: '#00bcd4' },
+  { min: 1000, label: 'GOLD',    emoji: '🏅', color: colors.gold },
+  { min: 500,  label: 'SILVER',  emoji: '🥈', color: '#90a4ae' },
+  { min: 0,    label: 'BRONZE',  emoji: '🥉', color: '#a1887f' },
+]
+
+function getTier(rank) {
+  return TIERS.find(t => rank >= t.min) ?? TIERS[TIERS.length - 1]
+}
+
 function getProgress(total) {
   const thresholds = [0, 5, 15, 30, 50, 80, 120, 180, 250, 350]
   const stage = getTreeStage(total)
@@ -19,49 +29,84 @@ function getProgress(total) {
 }
 
 export default function HomeScreen() {
-  const { profile } = useAuth()
+  const { profile, session } = useAuth()
   const [showRanking, setShowRanking] = useState(false)
   const [showFriends, setShowFriends] = useState(false)
+  const [streak, setStreak] = useState(0)
 
-  const total = profile?.total_pomodoros ?? 0
-  const wins = profile?.wins ?? 0
+  const total  = profile?.total_pomodoros ?? 0
+  const wins   = profile?.wins ?? 0
   const losses = profile?.losses ?? 0
-  const rank = profile?.rank ?? 0
+  const rank   = profile?.rank ?? 0
   const progress = getProgress(total)
-  const stage = getTreeStage(total)
+  const stage  = getTreeStage(total)
+  const tier   = getTier(rank)
   const winRate = wins + losses > 0 ? Math.round(wins / (wins + losses) * 100) : 0
+
+  useEffect(() => { fetchStreak() }, [])
+
+  async function fetchStreak() {
+    if (!session?.user?.id) return
+    const { data } = await supabase
+      .from('pomodoro_logs')
+      .select('created_at')
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending: false })
+      .limit(60)
+    if (!data) return
+
+    // 連続日数を計算
+    const dates = [...new Set(data.map(l => {
+      const d = new Date(l.created_at)
+      return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+    }))]
+
+    let count = 0
+    const today = new Date()
+    for (let i = 0; i < dates.length; i++) {
+      const check = new Date(today)
+      check.setDate(today.getDate() - i)
+      const key = `${check.getFullYear()}-${check.getMonth()}-${check.getDate()}`
+      if (dates.includes(key)) count++
+      else break
+    }
+    setStreak(count)
+  }
 
   return (
     <View style={styles.container}>
       <RankingModal visible={showRanking} onClose={() => setShowRanking(false)} />
-      <FriendModal visible={showFriends} onClose={() => setShowFriends(false)} />
+      <FriendModal  visible={showFriends} onClose={() => setShowFriends(false)} />
 
-      {/* ── 上部リソースバー ── */}
+      {/* ── 上部バー ── */}
       <View style={styles.topBar}>
         {/* XPバー */}
         <View style={styles.xpSection}>
           <View style={styles.xpLabelRow}>
-            <Text style={styles.xpStage}>Stage {stage}</Text>
-            <Text style={styles.xpCount}>{total} 🍅</Text>
+            <Text style={styles.xpStage}>🌱 Stage {stage}</Text>
+            <Text style={styles.xpCount}>{total} ポモ</Text>
           </View>
           <View style={styles.xpBarBg}>
             <View style={[styles.xpBarFill, { width: `${progress}%` }]} />
           </View>
         </View>
-        {/* 戦績バッジ */}
-        <View style={styles.wlBadge}>
-          <Text style={styles.wlText}>{wins}勝 {losses}敗</Text>
-          <Text style={styles.wlRate}>{winRate}%</Text>
+        {/* ストリーク */}
+        <View style={styles.streakBadge}>
+          <Text style={styles.streakFire}>🔥</Text>
+          <Text style={styles.streakNum}>{streak}</Text>
+          <Text style={styles.streakLabel}>連続</Text>
         </View>
       </View>
 
-      {/* ── プレイヤー情報バー ── */}
+      {/* ── プレイヤーバー ── */}
       <View style={styles.playerBar}>
         <View style={styles.playerLeft}>
           <Text style={styles.username}>{profile?.username ?? '---'}</Text>
-          <View style={styles.trophyRow}>
-            <Text style={styles.trophyIcon}>🏅</Text>
-            <Text style={styles.trophyNum}>{rank}</Text>
+          {/* ランクティア */}
+          <View style={[styles.tierBadge, { borderColor: tier.color }]}>
+            <Text style={styles.tierEmoji}>{tier.emoji}</Text>
+            <Text style={[styles.tierLabel, { color: tier.color }]}>{tier.label}</Text>
+            <Text style={[styles.tierNum, { color: tier.color }]}>{rank}</Text>
           </View>
         </View>
         <View style={styles.iconButtons}>
@@ -74,11 +119,28 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* ── 中央：木（メインビジュアル） ── */}
+      {/* ── 勝敗バー ── */}
+      <View style={styles.statsBar}>
+        <StatChip label="勝利" value={`${wins}勝`} color={colors.primary} />
+        <View style={styles.statsDivider} />
+        <StatChip label="勝率" value={`${winRate}%`} color={colors.gold} />
+        <View style={styles.statsDivider} />
+        <StatChip label="ポモドーロ" value={`${total}`} color={colors.accent} />
+      </View>
+
+      {/* ── 中央：木 ── */}
       <View style={styles.arenaWrap}>
         <TreeDisplay totalPomodoros={total} size="large" />
       </View>
+    </View>
+  )
+}
 
+function StatChip({ label, value, color }) {
+  return (
+    <View style={styles.statChip}>
+      <Text style={[styles.statValue, { color }]}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
     </View>
   )
 }
@@ -86,44 +148,47 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
 
-  // ── 上部リソースバー
+  // 上部バー
   topBar: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingTop: 52, paddingBottom: 8,
+    paddingHorizontal: 16, paddingTop: 52, paddingBottom: 10,
     backgroundColor: colors.card,
     borderBottomWidth: 1, borderBottomColor: colors.border,
     gap: 12,
   },
   xpSection: { flex: 1 },
-  xpLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  xpStage: { fontSize: 11, fontWeight: '700', color: colors.primary },
-  xpCount: { fontSize: 11, color: colors.textSub },
-  xpBarBg: {
-    height: 6, backgroundColor: colors.border, borderRadius: 3, overflow: 'hidden',
-  },
-  xpBarFill: {
-    height: '100%', backgroundColor: colors.primary, borderRadius: 3,
-  },
-  wlBadge: {
-    backgroundColor: colors.cardSub, borderRadius: radius.sm,
-    paddingVertical: 4, paddingHorizontal: 10,
-    borderWidth: 1, borderColor: colors.border, alignItems: 'center',
-  },
-  wlText: { fontSize: 12, fontWeight: '700', color: colors.text },
-  wlRate: { fontSize: 10, color: colors.textSub },
+  xpLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
+  xpStage: { fontSize: 12, fontWeight: '700', color: colors.primary },
+  xpCount: { fontSize: 12, color: colors.textSub },
+  xpBarBg: { height: 7, backgroundColor: colors.border, borderRadius: 4, overflow: 'hidden' },
+  xpBarFill: { height: '100%', backgroundColor: colors.primary, borderRadius: 4 },
 
-  // ── プレイヤーバー
+  streakBadge: {
+    alignItems: 'center', backgroundColor: colors.cardSub,
+    borderRadius: radius.md, paddingVertical: 4, paddingHorizontal: 10,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  streakFire: { fontSize: 16 },
+  streakNum: { fontSize: 16, fontWeight: '800', color: colors.text, lineHeight: 20 },
+  streakLabel: { fontSize: 9, color: colors.textLight },
+
+  // プレイヤーバー
   playerBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingVertical: 10,
     backgroundColor: colors.card,
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  playerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  playerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   username: { fontSize: 18, fontWeight: 'bold', color: colors.text },
-  trophyRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  trophyIcon: { fontSize: 14 },
-  trophyNum: { fontSize: 15, fontWeight: '700', color: colors.gold },
+  tierBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    borderWidth: 1.5, borderRadius: radius.full,
+    paddingVertical: 2, paddingHorizontal: 8,
+  },
+  tierEmoji: { fontSize: 13 },
+  tierLabel: { fontSize: 11, fontWeight: '800' },
+  tierNum: { fontSize: 11, fontWeight: '600' },
   iconButtons: { flexDirection: 'row', gap: 8 },
   iconBtn: {
     width: 40, height: 40, borderRadius: 20,
@@ -132,10 +197,20 @@ const styles = StyleSheet.create({
   },
   iconBtnText: { fontSize: 18 },
 
-  // ── 中央アリーナ
+  // 勝敗バー
+  statsBar: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: colors.card, paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  statChip: { flex: 1, alignItems: 'center' },
+  statValue: { fontSize: 15, fontWeight: '800' },
+  statLabel: { fontSize: 9, color: colors.textLight, marginTop: 1 },
+  statsDivider: { width: 1, height: 28, backgroundColor: colors.border },
+
+  // 中央
   arenaWrap: {
     flex: 1, paddingHorizontal: 20, paddingVertical: 12,
     justifyContent: 'center',
   },
-
 })
