@@ -1,11 +1,25 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import RankingModal from '../../components/RankingModal'
 import FriendModal from '../../components/FriendModal'
+import TreePickerModal from '../../components/TreePickerModal'
 import { getTreeStage } from '../../components/TreeDisplay'
 import { colors, radius, shadow } from '../../lib/theme'
+
+const TREE_IMAGES = {
+  1:  require('../../assets/trees/tree_1.png'),
+  2:  require('../../assets/trees/tree_2.png'),
+  3:  require('../../assets/trees/tree_3.png'),
+  4:  require('../../assets/trees/tree_4.png'),
+  5:  require('../../assets/trees/tree_5.png'),
+  6:  require('../../assets/trees/tree_6.png'),
+  7:  require('../../assets/trees/tree_7.png'),
+  8:  require('../../assets/trees/tree_8.png'),
+  9:  require('../../assets/trees/tree_9.png'),
+  10: require('../../assets/trees/tree_10.png'),
+}
 
 const TIERS = [
   { min: 2000, label: 'LEGEND',  emoji: '👑', color: '#ff6b35' },
@@ -20,17 +34,19 @@ function getTier(rank) {
 }
 
 export default function HomeScreen({ onBattle }) {
-  const { profile, session } = useAuth()
+  const { profile, session, updateHomeTree } = useAuth()
   const [showRanking, setShowRanking] = useState(false)
   const [showFriends, setShowFriends] = useState(false)
+  const [showPicker, setShowPicker] = useState(false)
   const [streak, setStreak] = useState(0)
 
-  const total   = profile?.total_pomodoros ?? 0
-  const wins    = profile?.wins ?? 0
-  const losses  = profile?.losses ?? 0
-  const rank    = profile?.rank ?? 0
-  const tier    = getTier(rank)
-  const winRate = wins + losses > 0 ? Math.round(wins / (wins + losses) * 100) : 0
+  const total    = profile?.total_pomodoros ?? 0
+  const wins     = profile?.wins ?? 0
+  const losses   = profile?.losses ?? 0
+  const rank     = profile?.rank ?? 0
+  const tier     = getTier(rank)
+  const winRate  = wins + losses > 0 ? Math.round(wins / (wins + losses) * 100) : 0
+  const homeTree = profile?.home_tree ?? 1
 
   useEffect(() => { fetchStreak() }, [])
 
@@ -63,8 +79,15 @@ export default function HomeScreen({ onBattle }) {
 
   return (
     <View style={styles.container}>
-      <RankingModal visible={showRanking} onClose={() => setShowRanking(false)} />
-      <FriendModal  visible={showFriends} onClose={() => setShowFriends(false)} />
+      <RankingModal    visible={showRanking} onClose={() => setShowRanking(false)} />
+      <FriendModal     visible={showFriends} onClose={() => setShowFriends(false)} />
+      <TreePickerModal
+        visible={showPicker}
+        onClose={() => setShowPicker(false)}
+        totalPomodoros={total}
+        selected={homeTree}
+        onSelect={updateHomeTree}
+      />
 
       {/* ── プレイヤーバー ── */}
       <View style={styles.playerBar}>
@@ -73,7 +96,7 @@ export default function HomeScreen({ onBattle }) {
           <View style={[styles.tierBadge, { borderColor: tier.color }]}>
             <Text style={styles.tierEmoji}>{tier.emoji}</Text>
             <Text style={[styles.tierLabel, { color: tier.color }]}>{tier.label}</Text>
-            <Text style={[styles.tierNum, { color: tier.color }]}>{rank}</Text>
+            <Text style={[styles.tierNum,   { color: tier.color }]}>{rank}</Text>
           </View>
         </View>
         <View style={styles.playerRight}>
@@ -94,11 +117,26 @@ export default function HomeScreen({ onBattle }) {
 
       {/* ── 勝績バー ── */}
       <View style={styles.statsBar}>
-        <StatChip label="勝利" value={`${wins}勝`} color={colors.primary} />
+        <StatChip label="勝利"     value={`${wins}勝`}    color={colors.primary} />
         <View style={styles.statsDivider} />
-        <StatChip label="勝率" value={`${winRate}%`} color={colors.gold} />
+        <StatChip label="勝率"     value={`${winRate}%`}  color={colors.gold} />
         <View style={styles.statsDivider} />
-        <StatChip label="ポモドーロ" value={`${total}`} color={colors.accent} />
+        <StatChip label="ポモドーロ" value={`${total}`}   color={colors.accent} />
+      </View>
+
+      {/* ── 中央：選択画像 ── */}
+      <View style={styles.arenaWrap}>
+        <View style={styles.imageWrap}>
+          <Image
+            source={TREE_IMAGES[homeTree]}
+            style={styles.arenaImage}
+            resizeMode="cover"
+          />
+          <View style={styles.watermarkCover} />
+        </View>
+        <TouchableOpacity style={styles.changeBtn} onPress={() => setShowPicker(true)}>
+          <Text style={styles.changeBtnText}>🎨 画像を変える</Text>
+        </TouchableOpacity>
       </View>
 
       {/* ── バトル開始ボタン ── */}
@@ -123,7 +161,6 @@ function StatChip({ label, value, color }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
 
-  // プレイヤーバー
   playerBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingTop: 52, paddingBottom: 12,
@@ -131,7 +168,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   playerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  username: { fontSize: 18, fontWeight: 'bold', color: colors.text },
+  username:   { fontSize: 18, fontWeight: 'bold', color: colors.text },
   tierBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
     borderWidth: 1.5, borderRadius: radius.full,
@@ -140,7 +177,6 @@ const styles = StyleSheet.create({
   tierEmoji: { fontSize: 13 },
   tierLabel: { fontSize: 11, fontWeight: '800' },
   tierNum:   { fontSize: 11, fontWeight: '600' },
-
   playerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   streakBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 2,
@@ -157,21 +193,39 @@ const styles = StyleSheet.create({
   },
   iconBtnText: { fontSize: 16 },
 
-  // 勝績バー
   statsBar: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: colors.card, paddingVertical: 10,
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  statChip:    { flex: 1, alignItems: 'center' },
-  statValue:   { fontSize: 15, fontWeight: '800' },
-  statLabel:   { fontSize: 9, color: colors.textLight, marginTop: 1 },
+  statChip:     { flex: 1, alignItems: 'center' },
+  statValue:    { fontSize: 15, fontWeight: '800' },
+  statLabel:    { fontSize: 9, color: colors.textLight, marginTop: 1 },
   statsDivider: { width: 1, height: 28, backgroundColor: colors.border },
 
-  // バトルボタン
+  // 中央画像
+  arenaWrap: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 16,
+  },
+  imageWrap: {
+    width: 220, height: 220, borderRadius: 20,
+    overflow: 'hidden', backgroundColor: '#d8d8d8', ...shadow,
+  },
+  arenaImage: { width: 220, height: 220 },
+  watermarkCover: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    height: 28, backgroundColor: '#d8d8d8',
+  },
+  changeBtn: {
+    marginTop: 14, paddingVertical: 8, paddingHorizontal: 20,
+    backgroundColor: colors.card, borderRadius: radius.full,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  changeBtnText: { fontSize: 13, color: colors.textSub, fontWeight: '600' },
+
   bottomSection: {
     paddingHorizontal: 16, paddingBottom: 12, paddingTop: 8,
-    marginTop: 'auto',
     backgroundColor: colors.card,
     borderTopWidth: 1, borderTopColor: colors.border,
   },
