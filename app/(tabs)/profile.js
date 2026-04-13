@@ -83,9 +83,9 @@ export default function ProfileScreen() {
 
       {/* ── プロフィールカード ── */}
       <View style={styles.profileCard}>
-        <FishAvatar wins={wins} size={88} borderColor={tier.color} />
+        <FishAvatar totalPomodoros={total} size={88} borderColor={tier.color} />
         <Text style={styles.fishStageText}>
-          🐟 {FISH_STAGE_NAMES[getFishStage(wins)]}　Stage {getFishStage(wins)} / 8
+          🐟 {FISH_STAGE_NAMES[getFishStage(total)]}　Stage {getFishStage(total)} / 6
         </Text>
         <Text style={styles.username}>{profile.username}</Text>
         <Text style={styles.titleText}>{title}</Text>

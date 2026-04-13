@@ -15,7 +15,7 @@ import {
   setupNotificationChannel,
 } from '../../lib/notifications'
 import { getSettings } from '../../lib/settings'
-import TreeDisplay, { getTreeStage } from '../TreeDisplay'
+import { FishBattleDisplay } from '../FishDisplay'
 import { colors, radius, shadow } from '../../lib/theme'
 
 const FACE_DOWN_THRESHOLD = 0.6
@@ -404,7 +404,7 @@ export default function FightScreen({ room, goal, onFinish }) {
       )}
 
       <Animated.View style={[styles.treeWrap, { transform: [{ scale: growAnim }] }]}>
-        <TreeDisplay totalPomodoros={pomodoros} size="large" />
+        <FishBattleDisplay totalPomodoros={pomodoros} />
       </Animated.View>
 
       {isFaceupWarning ? (

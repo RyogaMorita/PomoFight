@@ -1,5 +1,5 @@
-import { View, Image, StyleSheet } from 'react-native'
-import { colors, radius } from '../lib/theme'
+import { View, Image, Text, StyleSheet } from 'react-native'
+import { colors, radius, shadow } from '../lib/theme'
 
 const FISH_IMAGES = {
   1: require('../assets/fish/fish_1.png'),
@@ -8,28 +8,23 @@ const FISH_IMAGES = {
   4: require('../assets/fish/fish_4.png'),
   5: require('../assets/fish/fish_5.png'),
   6: require('../assets/fish/fish_6.png'),
-  7: require('../assets/fish/fish_6.png'), // TODO: fish_7.png 追加時に更新
-  8: require('../assets/fish/fish_6.png'), // TODO: fish_8.png 追加時に更新
 }
 
-export const FISH_STAGE_NAMES = [
-  '', '稚魚', '若魚', '勇魚', '闘魚', '猛魚', '豪魚', '剛魚', '伝説の魚'
+export const FISH_STAGE_NAMES = ['', '稚魚', '若魚', '勇魚', '闘魚', '猛魚', '伝説の魚']
+
+const FISH_STAGE_MESSAGES = [
+  '', 'まだ小さな魚です。', '少し成長した！', '元気に泳いでる！',
+  '強そうな魚だ！', 'もうすぐ伝説！', '🎉 伝説の魚に到達！',
 ]
 
-export function getFishStage(wins) {
-  if (wins < 3)  return 1
-  if (wins < 8)  return 2
-  if (wins < 15) return 3
-  if (wins < 25) return 4
-  if (wins < 40) return 5
-  if (wins < 60) return 6
-  if (wins < 90) return 7
-  return 8
+// ポモドーロ完了（休憩）ごとに1段階成長、最大6
+export function getFishStage(totalPomodoros) {
+  return Math.min((totalPomodoros ?? 0) + 1, 6)
 }
 
 // プロフィールアバター用（円形）
-export function FishAvatar({ wins, size = 88, borderColor }) {
-  const stage = getFishStage(wins ?? 0)
+export function FishAvatar({ totalPomodoros, size = 88, borderColor }) {
+  const stage = getFishStage(totalPomodoros)
   return (
     <View style={[
       styles.avatar,
@@ -44,10 +39,50 @@ export function FishAvatar({ wins, size = 88, borderColor }) {
   )
 }
 
+// 対戦中センター表示用
+export function FishBattleDisplay({ totalPomodoros }) {
+  const stage = getFishStage(totalPomodoros)
+  return (
+    <View style={styles.card}>
+      <View style={styles.imageWrap}>
+        <Image
+          source={FISH_IMAGES[stage]}
+          style={styles.image}
+          resizeMode="cover"
+        />
+      </View>
+      <Text style={styles.message}>{FISH_STAGE_MESSAGES[stage]}</Text>
+      <Text style={styles.stageName}>Stage {stage} / 6　{FISH_STAGE_NAMES[stage]}</Text>
+    </View>
+  )
+}
+
 const styles = StyleSheet.create({
+  // アバター（円形）
   avatar: {
     borderWidth: 3,
     overflow: 'hidden',
     backgroundColor: '#e0f2fe',
   },
+
+  // 対戦中センター
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    padding: 16,
+    alignItems: 'center',
+    width: '100%',
+    ...shadow,
+  },
+  imageWrap: {
+    width: 240, height: 240,
+    borderRadius: radius.md, overflow: 'hidden',
+    marginBottom: 12,
+    backgroundColor: '#e0f2fe',
+  },
+  image: { width: 240, height: 240 },
+  message: {
+    fontSize: 14, color: colors.textSub, marginBottom: 6, textAlign: 'center',
+  },
+  stageName: { fontSize: 12, color: colors.textLight },
 })
