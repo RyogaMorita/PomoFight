@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Animated, Easing
+  ActivityIndicator, Animated, Easing, Share
 } from 'react-native'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
@@ -167,6 +167,19 @@ export default function FinishScreen({ result, room, onBack }) {
     }
   }
 
+  function handleShare() {
+    const name    = profile?.username ?? 'プレイヤー'
+    const rankNow = displayRank
+    const streakLine = isWin && streak >= 2 ? `🔥 ${streak}連勝中！\n` : ''
+    const bonusLine  = isWin && total > 20  ? `✨ ボーナス込み +${total}\n` : ''
+
+    const text = isWin
+      ? `⚔️ PomoFight\n━━━━━━━━━━━━━━━━\n🏆 ${name} が勝利！\n📱 25分間スマホを我慢した\n${streakLine}${bonusLine}📊 ランク: ${rankNow}\n━━━━━━━━━━━━━━━━\nスマホ依存と戦ってます💪\n#PomoFight #集中力バトル`
+      : `⚔️ PomoFight\n━━━━━━━━━━━━━━━━\n💪 ${name} が集中に挑戦！\n📱 25分間スマホを置こうとした\n📊 ランク: ${rankNow}\n━━━━━━━━━━━━━━━━\nスマホ依存と戦ってます💪\n#PomoFight #集中力バトル`
+
+    Share.share({ message: text })
+  }
+
   const spin = emojiRot.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '20deg'] })
   const bgColor = bgFlash.interpolate({
     inputRange: [0, 1],
@@ -282,6 +295,35 @@ export default function FinishScreen({ result, room, onBack }) {
           </Animated.View>
         )}
 
+        {/* 敗北後リフレーミング */}
+        {!isWin && (
+          <View style={styles.reframeCard}>
+            <Text style={styles.reframeTitle}>💪 25分間 集中に挑戦した！</Text>
+            <View style={styles.reframeRow}>
+              <View style={styles.reframeStat}>
+                <Text style={styles.reframeStatNum}>25</Text>
+                <Text style={styles.reframeStatLabel}>分間の挑戦</Text>
+              </View>
+              <View style={styles.reframeDivider} />
+              <View style={styles.reframeStat}>
+                <Text style={styles.reframeStatNum}>{profile?.total_pomodoros ?? 0}</Text>
+                <Text style={styles.reframeStatLabel}>累計ポモドーロ</Text>
+              </View>
+              <View style={styles.reframeDivider} />
+              <View style={styles.reframeStat}>
+                <Text style={styles.reframeStatNum}>{profile?.wins ?? 0}</Text>
+                <Text style={styles.reframeStatLabel}>総勝利数</Text>
+              </View>
+            </View>
+            <Text style={styles.reframeMsg}>挑戦した事実は消えない。次はもっと強く。</Text>
+          </View>
+        )}
+
+        {/* シェアボタン */}
+        <TouchableOpacity style={styles.shareBtn} onPress={handleShare} activeOpacity={0.85}>
+          <Text style={styles.shareBtnText}>📤 結果をシェア</Text>
+        </TouchableOpacity>
+
         {/* ホームに戻る */}
         <TouchableOpacity style={styles.homeBtn} onPress={onBack} activeOpacity={0.85}>
           <Text style={styles.homeBtnText}>ホームに戻る</Text>
@@ -374,6 +416,40 @@ const styles = StyleSheet.create({
     ...shadow,
   },
   firstWinText: { fontSize: 16, fontWeight: '800', color: '#d97706' },
+
+  // 敗北リフレーミング
+  reframeCard: {
+    backgroundColor: '#f0fdf4',
+    borderRadius: radius.lg,
+    padding: 18,
+    borderWidth: 1.5, borderColor: '#86efac',
+    ...shadow,
+  },
+  reframeTitle: {
+    fontSize: 15, fontWeight: '800', color: '#166534',
+    textAlign: 'center', marginBottom: 14,
+  },
+  reframeRow: {
+    flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
+    marginBottom: 12,
+  },
+  reframeStat: { alignItems: 'center', flex: 1 },
+  reframeStatNum: { fontSize: 24, fontWeight: '900', color: '#16a34a' },
+  reframeStatLabel: { fontSize: 11, color: '#15803d', marginTop: 2, textAlign: 'center' },
+  reframeDivider: { width: 1, height: 36, backgroundColor: '#bbf7d0' },
+  reframeMsg: {
+    fontSize: 12, color: '#166534', textAlign: 'center',
+    fontStyle: 'italic', opacity: 0.8,
+  },
+
+  // シェアボタン
+  shareBtn: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    paddingVertical: 14, alignItems: 'center',
+    borderWidth: 1.5, borderColor: colors.border,
+  },
+  shareBtnText: { color: colors.text, fontSize: 15, fontWeight: '700' },
 
   homeBtn: {
     backgroundColor: colors.primary, borderRadius: radius.lg,
