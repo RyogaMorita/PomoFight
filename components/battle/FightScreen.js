@@ -16,6 +16,7 @@ import {
 } from '../../lib/notifications'
 import { getSettings } from '../../lib/settings'
 import { FishBattleDisplay } from '../FishDisplay'
+import TreeDisplay from '../TreeDisplay'
 import { colors, radius, shadow } from '../../lib/theme'
 
 const FACE_DOWN_THRESHOLD = 0.6
@@ -42,6 +43,8 @@ export default function FightScreen({ room, goal, onFinish }) {
   const [pomodoros, setPomodoros] = useState(profile?.total_pomodoros ?? 0)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const growAnim = useRef(new Animated.Value(1)).current
+
+  const showFish     = useRef(Math.random() < 0.5).current
 
   const leaveTimer   = useRef(null)
   const pomodoroTimer = useRef(null)
@@ -404,7 +407,10 @@ export default function FightScreen({ room, goal, onFinish }) {
       )}
 
       <Animated.View style={[styles.treeWrap, { transform: [{ scale: growAnim }] }]}>
-        <FishBattleDisplay totalPomodoros={pomodoros} />
+        {showFish
+          ? <FishBattleDisplay totalPomodoros={pomodoros} />
+          : <TreeDisplay totalPomodoros={pomodoros} size="large" />
+        }
       </Animated.View>
 
       {isFaceupWarning ? (
