@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   Alert, ActivityIndicator, ScrollView
 } from 'react-native'
+import Icon from './Icon'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { colors, radius, shadow } from '../lib/theme'
@@ -140,7 +141,10 @@ export default function FriendSection() {
                   <Text style={styles.friendRank}>Rank {f.profiles.rank}</Text>
                 </View>
                 <TouchableOpacity style={styles.battleBtn}>
-                  <Text style={styles.battleBtnText}>⚔️ 対戦</Text>
+                  <View style={styles.battleBtnInner}>
+                    <Icon name="sword" size={14} />
+                    <Text style={styles.battleBtnText}>対戦</Text>
+                  </View>
                 </TouchableOpacity>
               </View>
             ))
@@ -239,6 +243,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary, borderRadius: radius.sm,
     paddingVertical: 6, paddingHorizontal: 12,
   },
+  battleBtnInner: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   battleBtnText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
 
   pendingSection: { marginBottom: 16 },

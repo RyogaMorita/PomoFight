@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform
 } from 'react-native'
+import Icon from '../../components/Icon'
 import { useAuth } from '../../context/AuthContext'
 import FriendSection from '../../components/FriendSection'
 import { FishAvatar, getFishStage, FISH_STAGE_NAMES } from '../../components/FishDisplay'
@@ -78,7 +79,10 @@ export default function ProfileScreen() {
 
       {/* ── ヘッダー ── */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>👤 プロフィール</Text>
+        <View style={styles.headerTitleRow}>
+          <Icon name="profile" size={24} />
+          <Text style={styles.headerTitle}>プロフィール</Text>
+        </View>
       </View>
 
       {/* ── プロフィールカード ── */}
@@ -120,7 +124,10 @@ export default function ProfileScreen() {
 
       {/* ── 実績 ── */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🏅 実績  {unlocked.length}/{ACHIEVEMENTS.length}</Text>
+        <View style={styles.sectionTitleRow}>
+          <Icon name="star" size={18} />
+          <Text style={styles.sectionTitle}>実績  {unlocked.length}/{ACHIEVEMENTS.length}</Text>
+        </View>
 
         {/* 解放済み */}
         <View style={styles.badgeGrid}>
@@ -134,7 +141,7 @@ export default function ProfileScreen() {
           {/* 未解放（薄く表示） */}
           {locked.map(a => (
             <View key={a.id} style={[styles.badge, styles.badgeLocked]}>
-              <Text style={[styles.badgeEmoji, styles.badgeLockedEmoji]}>🔒</Text>
+              <Icon name="lock" size={20} />
               <Text style={[styles.badgeLabel, styles.badgeLockedText]}>{a.label}</Text>
               <Text style={[styles.badgeDesc, styles.badgeLockedText]}>{a.desc}</Text>
             </View>
@@ -149,7 +156,10 @@ export default function ProfileScreen() {
 
       {/* ── アカウントバックアップ ── */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🔒 アカウントバックアップ</Text>
+        <View style={styles.sectionTitleRow}>
+          <Icon name="lock" size={18} />
+          <Text style={styles.sectionTitle}>アカウントバックアップ</Text>
+        </View>
         <Text style={styles.sectionDesc}>メールアドレスを登録するとデータを引き継げます</Text>
         {!showBackup ? (
           <TouchableOpacity style={styles.backupBtn} onPress={() => setShowBackup(true)}>
@@ -212,6 +222,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerTitle: { fontSize: 22, fontWeight: 'bold', color: colors.text },
 
   // プロフィールカード
@@ -251,7 +262,8 @@ const styles = StyleSheet.create({
     marginBottom: 8, padding: 16,
     borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.border,
   },
-  sectionTitle: { fontSize: 15, fontWeight: 'bold', color: colors.text, marginBottom: 4 },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  sectionTitle: { fontSize: 15, fontWeight: 'bold', color: colors.text },
   sectionDesc:  { fontSize: 12, color: colors.textSub, marginBottom: 14 },
 
   // 実績バッジ

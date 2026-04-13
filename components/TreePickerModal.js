@@ -1,5 +1,6 @@
 import { Modal, View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native'
 import { getTreeStage } from './TreeDisplay'
+import Icon from './Icon'
 import { colors, radius, shadow } from '../lib/theme'
 
 const TREE_IMAGES = {
@@ -27,7 +28,10 @@ export default function TreePickerModal({ visible, onClose, totalPomodoros, sele
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>🌱 ホーム画像を選ぶ</Text>
+          <View style={styles.titleRow}>
+            <Icon name="plant" size={22} />
+            <Text style={styles.title}>ホーム画像を選ぶ</Text>
+          </View>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
             <Text style={styles.closeText}>✕</Text>
           </TouchableOpacity>
@@ -62,7 +66,7 @@ export default function TreePickerModal({ visible, onClose, totalPomodoros, sele
                   <View style={styles.watermarkCover} />
                   {!unlocked && (
                     <View style={styles.lockOverlay}>
-                      <Text style={styles.lockIcon}>🔒</Text>
+                      <Icon name="lock" size={28} />
                     </View>
                   )}
                 </View>
@@ -90,6 +94,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: 20, fontWeight: 'bold', color: colors.text },
   closeBtn: { padding: 4 },
   closeText: { fontSize: 22, color: colors.textSub },

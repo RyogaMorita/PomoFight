@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform
 } from 'react-native'
+import Icon from '../Icon'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { colors, radius, shadow } from '../../lib/theme'
@@ -51,7 +52,10 @@ export default function JoinRoomScreen({ goal, onMatched, onCancel }) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <Text style={styles.title}>🔑 部屋に参加</Text>
+      <View style={styles.titleRow}>
+        <Icon name="key" size={26} />
+        <Text style={styles.title}>部屋に参加</Text>
+      </View>
       <Text style={styles.sub}>友達からもらった6桁のコードを入力</Text>
 
       <View style={styles.inputRow}>
@@ -89,7 +93,10 @@ export default function JoinRoomScreen({ goal, onMatched, onCancel }) {
       >
         {loading
           ? <ActivityIndicator color="#fff" />
-          : <Text style={styles.buttonText}>参加する ⚔️</Text>
+          : <View style={styles.buttonInner}>
+              <Text style={styles.buttonText}>参加する</Text>
+              <Icon name="sword" size={20} />
+            </View>
         }
       </TouchableOpacity>
 
@@ -105,7 +112,9 @@ const styles = StyleSheet.create({
     flex: 1, backgroundColor: colors.bg,
     alignItems: 'center', justifyContent: 'center', padding: 24,
   },
-  title: { fontSize: 26, fontWeight: 'bold', color: colors.text, marginBottom: 8 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+  title: { fontSize: 26, fontWeight: 'bold', color: colors.text },
+  buttonInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   sub:   { fontSize: 14, color: colors.textSub, marginBottom: 32, textAlign: 'center' },
 
   inputRow: {

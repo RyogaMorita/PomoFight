@@ -4,6 +4,7 @@ import {
   TextInput, Modal, ActivityIndicator, RefreshControl,
   KeyboardAvoidingView, Platform
 } from 'react-native'
+import Icon from '../Icon'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { colors, radius, shadow } from '../../lib/theme'
@@ -53,7 +54,10 @@ export default function FreeMatchScreen({ goal, onJoinRoom, onCancel }) {
         <TouchableOpacity onPress={onCancel} style={styles.backBtn}>
           <Text style={styles.backText}>← 戻る</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>🌐 フリーマッチ</Text>
+        <View style={styles.titleRow}>
+          <Icon name="internet" size={20} />
+          <Text style={styles.title}>フリーマッチ</Text>
+        </View>
         <TouchableOpacity style={styles.createBtn} onPress={() => setShowCreate(true)}>
           <Text style={styles.createBtnText}>＋ 作る</Text>
         </TouchableOpacity>
@@ -159,7 +163,10 @@ function CreateRoomModal({ visible, goal, session, onCreated, onClose }) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>🏠 部屋を作る</Text>
+          <View style={styles.modalTitleRow}>
+            <Icon name="home" size={22} />
+            <Text style={styles.modalTitle}>部屋を作る</Text>
+          </View>
           <Text style={styles.modalGoal}>🎯 {goal}</Text>
 
           <Text style={styles.modalLabel}>部屋名</Text>
@@ -218,6 +225,7 @@ const styles = StyleSheet.create({
   },
   backBtn:  { padding: 4 },
   backText: { fontSize: 15, color: colors.primary, fontWeight: '600' },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title:    { fontSize: 18, fontWeight: 'bold', color: colors.text },
   createBtn: {
     backgroundColor: colors.primary, borderRadius: radius.full,
@@ -269,7 +277,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg,
     padding: 24, paddingBottom: 40,
   },
-  modalTitle:  { fontSize: 20, fontWeight: 'bold', color: colors.text, marginBottom: 4 },
+  modalTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  modalTitle:  { fontSize: 20, fontWeight: 'bold', color: colors.text },
   modalGoal:   { fontSize: 13, color: colors.primary, marginBottom: 20 },
   modalLabel:  { fontSize: 13, color: colors.textSub, fontWeight: '600', marginBottom: 8 },
   modalInput: {
