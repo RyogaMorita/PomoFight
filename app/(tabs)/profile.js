@@ -5,6 +5,7 @@ import {
 } from 'react-native'
 import { useAuth } from '../../context/AuthContext'
 import FriendSection from '../../components/FriendSection'
+import { FishAvatar, getFishStage, FISH_STAGE_NAMES } from '../../components/FishDisplay'
 import { colors, radius, shadow } from '../../lib/theme'
 
 // ── ランクティア ─────────────────────────────────────────────
@@ -82,9 +83,10 @@ export default function ProfileScreen() {
 
       {/* ── プロフィールカード ── */}
       <View style={styles.profileCard}>
-        <View style={[styles.avatar, { borderColor: tier.color }]}>
-          <Text style={styles.avatarText}>{profile.username?.[0]?.toUpperCase() ?? '?'}</Text>
-        </View>
+        <FishAvatar wins={wins} size={88} borderColor={tier.color} />
+        <Text style={styles.fishStageText}>
+          🐟 {FISH_STAGE_NAMES[getFishStage(wins)]}　Stage {getFishStage(wins)} / 8
+        </Text>
         <Text style={styles.username}>{profile.username}</Text>
         <Text style={styles.titleText}>{title}</Text>
         <View style={[styles.tierBadge, { borderColor: tier.color, backgroundColor: tier.color + '18' }]}>
@@ -218,13 +220,7 @@ const styles = StyleSheet.create({
     paddingVertical: 28, paddingHorizontal: 20,
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  avatar: {
-    width: 88, height: 88, borderRadius: 44,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 3, marginBottom: 12,
-  },
-  avatarText:  { fontSize: 38, fontWeight: '900', color: colors.primary },
+  fishStageText: { fontSize: 12, color: colors.textSub, marginTop: 6, marginBottom: 4 },
   username:    { fontSize: 24, fontWeight: 'bold', color: colors.text, marginBottom: 4 },
   titleText:   { fontSize: 14, color: colors.textSub, marginBottom: 12 },
   tierBadge: {
