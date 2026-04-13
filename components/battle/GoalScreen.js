@@ -26,6 +26,9 @@ export default function GoalScreen({ onStart, onTestStart, onCreateRoom, onJoinR
         value={goal}
         onChangeText={setGoal}
         maxLength={30}
+        autoComplete="off"
+        autoCorrect={false}
+        textContentType="none"
       />
 
       <View style={styles.presets}>

@@ -35,7 +35,7 @@ const PAGES = [
     emoji: '🌳',
     illustration: <TreeIllustration />,
     title: '木を育てよう',
-    desc: 'バトルに勝つと木が成長\n全10ステージを目指せ！',
+    desc: 'ポモドーロを完了するたびに\n木と魚が一緒に育つよ！',
     bg: '#f0f9f0',
   },
 ]
@@ -176,6 +176,9 @@ export default function OnboardingScreen() {
                 maxLength={20}
                 autoFocus
                 autoCapitalize="none"
+                autoComplete="off"
+                autoCorrect={false}
+                textContentType="none"
               />
               {error ? <Text style={styles.error}>{error}</Text> : null}
               <TouchableOpacity

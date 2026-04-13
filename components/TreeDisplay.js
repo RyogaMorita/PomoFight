@@ -62,8 +62,6 @@ export default function TreeDisplay({ totalPomodoros, size = 'large' }) {
             style={styles.imageLarge}
             resizeMode="cover"
           />
-          {/* 下一行のウォーターマークを画像背景色で隠す */}
-          <View style={styles.watermarkCover} />
         </View>
 
         <Text style={styles.progressText}>{progress}%</Text>
@@ -87,7 +85,6 @@ export default function TreeDisplay({ totalPomodoros, size = 'large' }) {
           style={styles.imageSmall}
           resizeMode="cover"
         />
-        <View style={styles.watermarkCoverSmall} />
       </View>
       <View style={styles.smallInfo}>
         <Text style={styles.smallStageName}>{STAGE_NAMES[stage]}</Text>

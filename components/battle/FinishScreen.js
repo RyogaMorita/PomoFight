@@ -89,6 +89,13 @@ export default function FinishScreen({ result, room, onBack }) {
     let change = 0
     let info   = null
 
+    if (room?.isTest) {
+      // テスト対戦はレート変動なし・DB更新なし
+      setLoading(false)
+      startAnimations(0, null)
+      return
+    }
+
     const oldStage = getTreeStage(profile?.total_pomodoros ?? 0)
 
     const { data } = await supabase.rpc('record_battle_result', {

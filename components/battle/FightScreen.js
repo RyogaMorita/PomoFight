@@ -272,12 +272,16 @@ export default function FightScreen({ room, goal, onFinish }) {
         phaseRef.current = 'fighting'
         setPhase('fighting')
         startPomodoro()
+        Vibration.vibrate([0, 60, 40, 100]) // 伏せ確認バイブ（ピロン）
       }
     } else if (phaseRef.current === 'fighting') {
       if (!isFaceDown) {
         if (!faceupTimer.current) startFaceupTimer()
       } else {
-        if (faceupTimer.current) stopFaceupTimer()
+        if (faceupTimer.current) {
+          stopFaceupTimer()
+          Vibration.vibrate([0, 60, 40, 100]) // 伏せ復帰バイブ
+        }
       }
     }
   }, [isFaceDown])
@@ -424,6 +428,11 @@ export default function FightScreen({ room, goal, onFinish }) {
       )}
 
       <Text style={styles.timer}>{formatTime(timeLeft)}</Text>
+      {__DEV__ && (
+        <TouchableOpacity onPress={() => setTimeLeft(3)} style={styles.devSkip}>
+          <Text style={styles.devSkipText}>⚡ DEV: スキップ</Text>
+        </TouchableOpacity>
+      )}
 
       <View style={styles.goalBox}>
         <Text style={styles.goalLabel}>目的</Text>
@@ -642,6 +651,8 @@ const styles = StyleSheet.create({
 
   loseButton: { paddingVertical: 12, paddingHorizontal: 32 },
   loseText: { color: colors.textLight, fontSize: 14 },
+  devSkip: { paddingVertical: 4, paddingHorizontal: 12, marginBottom: 4 },
+  devSkipText: { color: '#ff6b35', fontSize: 11, fontWeight: '700' },
 
   modalOverlay: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',

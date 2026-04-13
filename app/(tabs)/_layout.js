@@ -9,8 +9,8 @@ import SettingsScreen from './settings'
 
 const TABS = [
   { key: 'home',     label: 'ホーム',       emoji: '🎒' },
-  { key: 'battle',   label: 'バトル',       emoji: '⚔️' },
   { key: 'diary',    label: '日記',         emoji: '📖' },
+  { key: 'battle',   label: 'バトル',       emoji: '⚔️' },
   { key: 'profile',  label: 'プロフィール', emoji: '👤' },
   { key: 'settings', label: '設定',         emoji: '⚙️' },
 ]
@@ -64,7 +64,7 @@ export default function TabLayout() {
               <TouchableOpacity
                 key={tab.key}
                 style={[styles.tabItem, active && styles.tabItemActive]}
-                onPress={() => setActiveTab(tab.key)}
+                onPress={() => tab.key === 'battle' ? goToBattle('goal') : setActiveTab(tab.key)}
                 activeOpacity={0.7}
               >
                 <Text style={styles.tabEmoji}>{tab.emoji}</Text>
