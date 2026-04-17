@@ -26,7 +26,10 @@ export default function SettingsScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>⚙️ 設定</Text>
+        <View style={styles.headerTitleRow}>
+          <Icon name="setting" size={24} />
+          <Text style={styles.headerTitle}>設定</Text>
+        </View>
       </View>
 
       {/* ── バトル設定 ── */}
@@ -111,6 +114,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerTitle: { fontSize: 22, fontWeight: 'bold', color: colors.text },
 
   sectionLabel: {

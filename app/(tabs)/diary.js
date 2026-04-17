@@ -199,7 +199,10 @@ export default function DiaryScreen() {
     <View style={styles.container}>
       {/* ── ヘッダー ── */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>📖 日記</Text>
+        <View style={styles.headerTitleRow}>
+          <Icon name="analize" size={24} />
+          <Text style={styles.headerTitle}>日記</Text>
+        </View>
         <Text style={styles.headerSub}>
           {today.getMonth() + 1}月{today.getDate()}日
         </Text>
@@ -309,6 +312,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerTitle: { fontSize: 22, fontWeight: 'bold', color: colors.text },
   headerSub:   { fontSize: 13, color: colors.textSub, paddingBottom: 2 },
 

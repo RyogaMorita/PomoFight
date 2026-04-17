@@ -15,6 +15,9 @@ const ICONS = {
   lock:     require('../assets/lock.png'),
   bell:     require('../assets/bell.png'),
   speaker:  require('../assets/speaker.png'),
+  friends:  require('../assets/friends.png'),
+  analize:  require('../assets/analize.png'),
+  setting:  require('../assets/setting.png'),
 }
 
 export default function Icon({ name, size = 24, style }) {

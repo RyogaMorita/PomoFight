@@ -98,7 +98,10 @@ export default function FriendSection() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>👥 フレンド</Text>
+      <View style={styles.sectionTitleRow}>
+        <Icon name="friends" size={18} />
+        <Text style={styles.sectionTitle}>フレンド</Text>
+      </View>
 
       {/* 自分のコード */}
       <View style={styles.myCode}>
@@ -211,7 +214,8 @@ export default function FriendSection() {
 
 const styles = StyleSheet.create({
   container: { marginTop: 24 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 12 },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: colors.text },
 
   myCode: {
     backgroundColor: colors.card, borderRadius: radius.md, padding: 14, marginBottom: 16, ...shadow,

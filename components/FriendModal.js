@@ -1,5 +1,6 @@
 import { Modal, View, StyleSheet, TouchableOpacity, Text } from 'react-native'
 import FriendSection from './FriendSection'
+import Icon from './Icon'
 import { colors, radius } from '../lib/theme'
 
 export default function FriendModal({ visible, onClose }) {
@@ -7,7 +8,10 @@ export default function FriendModal({ visible, onClose }) {
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>👥 フレンド</Text>
+          <View style={styles.titleRow}>
+            <Icon name="friends" size={22} />
+            <Text style={styles.title}>フレンド</Text>
+          </View>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
             <Text style={styles.closeText}>✕</Text>
           </TouchableOpacity>
@@ -28,6 +32,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: 20, fontWeight: 'bold', color: colors.text },
   closeBtn: { padding: 4 },
   closeText: { fontSize: 22, color: colors.textSub },

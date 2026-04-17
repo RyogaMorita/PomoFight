@@ -105,7 +105,7 @@ export default function HomeScreen({ onBattle, onCreateRoom, onJoinRoom }) {
             <Text style={styles.streakText}>🔥{streak}</Text>
           </View>
           <TouchableOpacity style={styles.iconBtn} onPress={() => setShowFriends(true)}>
-            <Text style={styles.iconBtnText}>👥</Text>
+            <Icon name="friends" size={22} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconBtn} onPress={() => setShowRanking(true)}>
             <Icon name="trophy" size={22} />
@@ -145,7 +145,10 @@ export default function HomeScreen({ onBattle, onCreateRoom, onJoinRoom }) {
         </TouchableOpacity>
         <View style={styles.subButtons}>
           <TouchableOpacity style={styles.subButton} onPress={onJoinRoom}>
-            <Text style={styles.subButtonText}>👥 フレンドバトル</Text>
+            <View style={styles.subButtonInner}>
+              <Icon name="friends" size={18} />
+              <Text style={styles.subButtonText}>フレンドバトル</Text>
+            </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.subButton} onPress={onCreateRoom}>
             <View style={styles.subButtonInner}>

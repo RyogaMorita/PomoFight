@@ -9,10 +9,10 @@ import SettingsScreen from './settings'
 
 const TABS = [
   { key: 'home',     label: 'ホーム',       emoji: null,  image: require('../../assets/home.png') },
-  { key: 'diary',    label: '日記',         emoji: '📖',  image: null },
+  { key: 'diary',    label: '日記',         emoji: null,  image: require('../../assets/analize.png') },
   { key: 'battle',   label: 'バトル',       emoji: null,  image: require('../../assets/Wsord.png') },
   { key: 'profile',  label: 'プロフィール', emoji: null,  image: require('../../assets/profile.png') },
-  { key: 'settings', label: '設定',         emoji: '⚙️',  image: null },
+  { key: 'settings', label: '設定',         emoji: null,  image: require('../../assets/setting.png') },
 ]
 
 export default function TabLayout() {

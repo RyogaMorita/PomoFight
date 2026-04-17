@@ -103,7 +103,10 @@ export default function RoomWaitingScreen({ room, onStart, onCancel }) {
           <Text style={styles.roomInfoValue}>{room.theme}</Text>
         </View>
         <View style={styles.roomInfoRow}>
-          <Text style={styles.roomInfoLabel}>👥 定員</Text>
+          <View style={styles.roomInfoLabelRow}>
+            <Icon name="friends" size={14} />
+            <Text style={styles.roomInfoLabel}>定員</Text>
+          </View>
           <Text style={styles.roomInfoValue}>{players.length} / {maxPlayers}人</Text>
         </View>
         {room.invite_code && (
