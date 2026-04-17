@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   View, Text, StyleSheet, ScrollView, ActivityIndicator, useWindowDimensions
 } from 'react-native'
@@ -30,6 +30,46 @@ function groupByDate(logs) {
 
 const CELL_SIZE = 14
 const CELL_GAP  = 3
+
+function HeatmapScroll({ weeks, countMap, today, cellColor, monthLabel }) {
+  const scrollRef = useRef(null)
+  useEffect(() => {
+    scrollRef.current?.scrollToEnd({ animated: false })
+  }, [])
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={scrollRef}>
+      <View>
+        <View style={styles.hmMonthRow}>
+          {weeks.map((week, wi) => (
+            <Text key={wi} style={styles.hmMonthLabel}>{monthLabel(week)}</Text>
+          ))}
+        </View>
+        <View style={styles.hmGrid}>
+          {weeks.map((week, wi) => (
+            <View key={wi} style={styles.hmWeekCol}>
+              {week.map((d, di) => {
+                const key = toDateKey(d)
+                const count = countMap[key] || 0
+                const isToday = key === toDateKey(today)
+                const isFuture = d > today
+                return (
+                  <View
+                    key={di}
+                    style={[
+                      styles.hmCell,
+                      { backgroundColor: isFuture ? 'transparent' : cellColor(count) },
+                      isToday && styles.hmCellToday,
+                    ]}
+                  />
+                )
+              })}
+            </View>
+          ))}
+        </View>
+      </View>
+    </ScrollView>
+  )
+}
 
 // ── ヒートマップ（全期間・横スクロール）──
 function Heatmap({ logs }) {
@@ -97,39 +137,7 @@ function Heatmap({ logs }) {
           ))}
         </View>
         {/* 週グリッド（横スクロール） */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={ref => ref?.scrollToEnd?.({ animated: false })}>
-          <View>
-            {/* 月ラベル行 */}
-            <View style={styles.hmMonthRow}>
-              {weeks.map((week, wi) => (
-                <Text key={wi} style={styles.hmMonthLabel}>{monthLabel(week)}</Text>
-              ))}
-            </View>
-            {/* セルグリッド */}
-            <View style={styles.hmGrid}>
-              {weeks.map((week, wi) => (
-                <View key={wi} style={styles.hmWeekCol}>
-                  {week.map((d, di) => {
-                    const key = toDateKey(d)
-                    const count = countMap[key] || 0
-                    const isToday = key === toDateKey(today)
-                    const isFuture = d > today
-                    return (
-                      <View
-                        key={di}
-                        style={[
-                          styles.hmCell,
-                          { backgroundColor: isFuture ? 'transparent' : cellColor(count) },
-                          isToday && styles.hmCellToday,
-                        ]}
-                      />
-                    )
-                  })}
-                </View>
-              ))}
-            </View>
-          </View>
-        </ScrollView>
+        <HeatmapScroll weeks={weeks} countMap={countMap} today={today} cellColor={cellColor} monthLabel={monthLabel} />
       </View>
       <View style={styles.hmLegend}>
         <Text style={styles.hmLegendLabel}>少ない</Text>

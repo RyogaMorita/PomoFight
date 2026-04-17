@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Share } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Share, Alert } from 'react-native'
+import Icon from '../Icon'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { colors, radius, shadow } from '../../lib/theme'
@@ -36,7 +37,10 @@ export default function CreateRoomScreen({ goal, onMatched, onCancel }) {
       .select()
       .single()
 
-    if (!room) return
+    if (!room) {
+      Alert.alert('エラー', '部屋の作成に失敗しました')
+      return
+    }
     roomRef.current = room.id
     setCode(inviteCode)
 
@@ -73,7 +77,10 @@ export default function CreateRoomScreen({ goal, onMatched, onCancel }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>🏠 部屋を作る</Text>
+      <View style={styles.titleRow}>
+        <Icon name="home" size={26} />
+        <Text style={styles.title}>部屋を作る</Text>
+      </View>
       <Text style={styles.goal}>目的: {goal}</Text>
       <Text style={styles.sub}>このコードを友達に教えよう</Text>
 
@@ -114,7 +121,8 @@ const styles = StyleSheet.create({
     flex: 1, backgroundColor: colors.bg,
     alignItems: 'center', justifyContent: 'center', padding: 24,
   },
-  title:  { fontSize: 26, fontWeight: 'bold', color: colors.text, marginBottom: 6 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
+  title:  { fontSize: 26, fontWeight: 'bold', color: colors.text },
   goal:   { fontSize: 14, color: colors.primary, fontWeight: '600', marginBottom: 4 },
   sub:    { fontSize: 14, color: colors.textSub, marginBottom: 32 },
 

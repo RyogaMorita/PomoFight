@@ -41,8 +41,9 @@ function RadarRing({ delay, color }) {
 
 export default function MatchingScreen({ goal, onMatched, onCancel }) {
   const { session, profile } = useAuth()
-  const roomRef   = useRef(null)
-  const iconPulse = useRef(new Animated.Value(1)).current
+  const roomRef    = useRef(null)
+  const channelRef = useRef(null)
+  const iconPulse  = useRef(new Animated.Value(1)).current
 
   const [waitSeconds, setWaitSeconds] = useState(0)
   const [tipIndex,    setTipIndex]    = useState(0)
@@ -123,16 +124,20 @@ export default function MatchingScreen({ goal, onMatched, onCancel }) {
             filter: `id=eq.${newRoom.id}`
           }, (payload) => {
             if (payload.new.status === 'active') {
-              channel.unsubscribe()
+              channelRef.current?.unsubscribe()
+              channelRef.current = null
               onMatched({ id: newRoom.id, opponentGoal: null })
             }
           })
           .subscribe()
+        channelRef.current = channel
       }
     }
   }
 
   async function cleanup() {
+    channelRef.current?.unsubscribe()
+    channelRef.current = null
     if (roomRef.current) {
       await supabase.from('rooms').delete().eq('id', roomRef.current).eq('status', 'waiting')
     }
