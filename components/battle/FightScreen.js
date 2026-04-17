@@ -25,10 +25,13 @@ const FACEDOWN_LIMIT = 10
 const FACEUP_GRACE = 10
 const OFFLINE_GRACE_SECONDS = 10
 
+const BREAK_SECONDS = 5 * 60
+
 export default function FightScreen({ room, goal, onFinish }) {
   const { session, profile } = useAuth()
   const POMODORO_SECONDS = 25 * 60
   const [timeLeft, setTimeLeft] = useState(POMODORO_SECONDS)
+  const [breakLeft, setBreakLeft] = useState(BREAK_SECONDS)
   const [isFaceDown, setIsFaceDown] = useState(false)
   const [opponentLeft, setOpponentLeft] = useState(false)
   const [leaveWarning, setLeaveWarning] = useState(0)
@@ -40,7 +43,7 @@ export default function FightScreen({ room, goal, onFinish }) {
   const [opponent, setOpponent] = useState(null)
   const [activePlayers, setActivePlayers] = useState(null)
   const [showReport, setShowReport] = useState(false)
-  const [pomodoros, setPomodoros] = useState(profile?.total_pomodoros ?? 0)
+  const [pomodoros, setPomodoros] = useState(0)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const growAnim = useRef(new Animated.Value(1)).current
 
@@ -48,13 +51,14 @@ export default function FightScreen({ room, goal, onFinish }) {
 
   const leaveTimer   = useRef(null)
   const pomodoroTimer = useRef(null)
+  const breakTimer   = useRef(null)
   const facedownTimer = useRef(null)
   const faceupTimer  = useRef(null)
   const offlineTimer = useRef(null)
   const hasLost         = useRef(false)
   const showingLoseAlert = useRef(false)
   const phaseRef     = useRef('facedown')
-  const isFaceDownRef = useRef(false)   // スリープ時のleave判定用
+  const isFaceDownRef = useRef(false)
   const appState     = useRef(AppState.currentState)
 
   useEffect(() => {
@@ -236,9 +240,40 @@ export default function FightScreen({ room, goal, onFinish }) {
     }
   }
 
+  function stopBreak() {
+    if (breakTimer.current) {
+      clearInterval(breakTimer.current)
+      breakTimer.current = null
+    }
+  }
+
+  function startBreak() {
+    phaseRef.current = 'break'
+    setPhase('break')
+    breakTimer.current = setInterval(() => {
+      setBreakLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(breakTimer.current)
+          breakTimer.current = null
+          phaseRef.current = 'log'
+          setPhase('log')
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
+  function skipBreak() {
+    stopBreak()
+    phaseRef.current = 'log'
+    setPhase('log')
+  }
+
   function cleanup() {
     stopFacedownTimer()
     stopFaceupTimer()
+    stopBreak()
     clearLeaveTimer()
     clearOfflineTimer()
     if (pomodoroTimer.current) {
@@ -294,9 +329,10 @@ export default function FightScreen({ room, goal, onFinish }) {
         if (prev <= 1) {
           clearInterval(pomodoroTimer.current)
           pomodoroTimer.current = null
+          stopFaceupTimer()
+          Vibration.cancel()
           growTree()
-          phaseRef.current = 'log'
-          setPhase('log')
+          startBreak()
           return 0
         }
         return prev - 1
@@ -306,6 +342,7 @@ export default function FightScreen({ room, goal, onFinish }) {
 
   function growTree() {
     setPomodoros(prev => prev + 1)
+    Vibration.vibrate([0, 200, 100, 200, 100, 600])
     Animated.sequence([
       Animated.timing(growAnim, { toValue: 1.15, duration: 400, useNativeDriver: true }),
       Animated.timing(growAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
@@ -349,6 +386,25 @@ export default function FightScreen({ room, goal, onFinish }) {
             <Text style={styles.opponentRank}>🏆 Rank {opponent.rank}</Text>
           </View>
         )}
+      </View>
+    )
+  }
+
+  if (phase === 'break') {
+    const bm = Math.floor(breakLeft / 60)
+    const bs = breakLeft % 60
+    return (
+      <View style={styles.container}>
+        <Text style={styles.bigEmoji}>☕</Text>
+        <Text style={styles.title}>ポモドーロ完了！</Text>
+        <Text style={styles.sub}>休憩しましょう</Text>
+        <Text style={[styles.timer, styles.breakTimer]}>
+          {String(bm).padStart(2, '0')}:{String(bs).padStart(2, '0')}
+        </Text>
+        <Text style={styles.breakSub}>休憩終了後、自動でログ画面へ移動します</Text>
+        <TouchableOpacity style={styles.skipBreakBtn} onPress={skipBreak}>
+          <Text style={styles.skipBreakText}>スキップ → ログを記録</Text>
+        </TouchableOpacity>
       </View>
     )
   }
@@ -651,6 +707,15 @@ const styles = StyleSheet.create({
   },
   goalLabel: { fontSize: 12, color: colors.textLight, marginBottom: 4 },
   goalText: { fontSize: 18, color: colors.text, fontWeight: '600' },
+
+  breakTimer: { color: colors.primary, marginVertical: 16 },
+  breakSub: { fontSize: 13, color: colors.textLight, marginBottom: 28, textAlign: 'center' },
+  skipBreakBtn: {
+    paddingVertical: 14, paddingHorizontal: 36,
+    borderRadius: radius.md, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  skipBreakText: { color: colors.textSub, fontSize: 16 },
 
   loseButton: { paddingVertical: 12, paddingHorizontal: 32 },
   loseText: { color: colors.textLight, fontSize: 14 },
