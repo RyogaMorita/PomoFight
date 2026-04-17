@@ -51,7 +51,8 @@ export default function FightScreen({ room, goal, onFinish }) {
   const facedownTimer = useRef(null)
   const faceupTimer  = useRef(null)
   const offlineTimer = useRef(null)
-  const hasLost      = useRef(false)
+  const hasLost         = useRef(false)
+  const showingLoseAlert = useRef(false)
   const phaseRef     = useRef('facedown')
   const isFaceDownRef = useRef(false)   // スリープ時のleave判定用
   const appState     = useRef(AppState.currentState)
@@ -106,8 +107,8 @@ export default function FightScreen({ room, goal, onFinish }) {
 
     if (!data) return
     if (data.length === 1) {
-      // 1v1
-      setOpponent(data[0].profiles)
+      // 1v1: player_id をprofilesに含めて保存
+      setOpponent({ ...data[0].profiles, player_id: data[0].player_id })
     } else {
       // 複数人：残り人数モード
       setActivePlayers(data.length + 1) // 自分含む
@@ -440,9 +441,11 @@ export default function FightScreen({ room, goal, onFinish }) {
       </View>
 
       <TouchableOpacity style={styles.loseButton} onPress={() => {
+        if (showingLoseAlert.current) return
+        showingLoseAlert.current = true
         Alert.alert('降参しますか？', '敗北になります', [
-          { text: 'キャンセル' },
-          { text: '降参する', style: 'destructive', onPress: () => handleLose('降参') },
+          { text: 'キャンセル', onPress: () => { showingLoseAlert.current = false } },
+          { text: '降参する', style: 'destructive', onPress: () => { showingLoseAlert.current = false; handleLose('降参') } },
         ])
       }}>
         <Text style={styles.loseText}>降参する</Text>
@@ -452,7 +455,7 @@ export default function FightScreen({ room, goal, onFinish }) {
         visible={showReport}
         onClose={() => setShowReport(false)}
         roomId={room.id}
-        reportedId={opponent?.id}
+        reportedId={opponent?.player_id}
         reporterId={session.user.id}
       />
     </View>

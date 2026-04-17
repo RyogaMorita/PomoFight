@@ -89,37 +89,39 @@ export default function FinishScreen({ result, room, onBack }) {
     let change = 0
     let info   = null
 
-    if (room?.isTest) {
-      // テスト対戦はレート変動なし・DB更新なし
+    try {
+      if (room?.isTest) {
+        setLoading(false)
+        startAnimations(0, null)
+        return
+      }
+
+      const oldStage = getTreeStage(profile?.total_pomodoros ?? 0)
+
+      const { data } = await supabase.rpc('record_battle_result', {
+        p_user_id: session.user.id,
+        p_is_win: isWin,
+      })
+      info   = data
+      change = data?.total ?? (isWin ? 20 : -10)
+      setBonusInfo(info)
+      await fetchProfile(session.user.id)
+
+      const { data: newProfile } = await supabase
+        .from('profiles')
+        .select('total_pomodoros')
+        .eq('id', session.user.id)
+        .single()
+      const newStage = getTreeStage(newProfile?.total_pomodoros ?? 0)
+      if (newStage > oldStage) {
+        setEvolvedStage({ from: oldStage, to: newStage })
+      }
+    } catch (e) {
+      console.error('recordResult error:', e)
+    } finally {
       setLoading(false)
-      startAnimations(0, null)
-      return
+      startAnimations(change, info)
     }
-
-    const oldStage = getTreeStage(profile?.total_pomodoros ?? 0)
-
-    const { data } = await supabase.rpc('record_battle_result', {
-      p_user_id: session.user.id,
-      p_is_win: isWin,
-    })
-    info   = data
-    change = data?.total ?? (isWin ? 20 : -10)
-    setBonusInfo(info)
-    await fetchProfile(session.user.id)
-
-    // 進化チェック：最新のtotal_pomodorosを直接取得
-    const { data: newProfile } = await supabase
-      .from('profiles')
-      .select('total_pomodoros')
-      .eq('id', session.user.id)
-      .single()
-    const newStage = getTreeStage(newProfile?.total_pomodoros ?? 0)
-    if (newStage > oldStage) {
-      setEvolvedStage({ from: oldStage, to: newStage })
-    }
-
-    setLoading(false)
-    startAnimations(change, info)
   }
 
   function startAnimations(change, info) {

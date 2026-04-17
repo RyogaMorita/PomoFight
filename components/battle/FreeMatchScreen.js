@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   TextInput, Modal, ActivityIndicator, RefreshControl,
-  KeyboardAvoidingView, Platform
+  KeyboardAvoidingView, Platform, Alert
 } from 'react-native'
 import Icon from '../Icon'
 import { supabase } from '../../lib/supabase'
@@ -34,8 +34,10 @@ export default function FreeMatchScreen({ goal, onJoinRoom, onCancel }) {
   }
 
   async function joinRoom(room) {
-    // 既に満員チェック
-    if (room.room_players.length >= room.max_players) return
+    if (room.room_players.length >= room.max_players) {
+      Alert.alert('満員です', 'この部屋はすでに満員です')
+      return
+    }
 
     await supabase.from('room_players').insert({
       room_id: room.id, player_id: session.user.id,
@@ -227,6 +229,7 @@ const styles = StyleSheet.create({
   backText: { fontSize: 15, color: colors.primary, fontWeight: '600' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title:    { fontSize: 18, fontWeight: 'bold', color: colors.text },
+  modalTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
   createBtn: {
     backgroundColor: colors.primary, borderRadius: radius.full,
     paddingVertical: 6, paddingHorizontal: 14,

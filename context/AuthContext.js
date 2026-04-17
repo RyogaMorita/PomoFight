@@ -63,7 +63,7 @@ export function AuthProvider({ children }) {
         .select('*')
         .eq('id', userId)
         .single()
-      console.log('fetchProfile:', data, error?.code)
+      console.log('fetchProfile:', data?.id, error?.code)
       setProfile(data ?? null)
       if (data) savePushToken(userId)
     } catch (e) {
@@ -103,7 +103,7 @@ export function AuthProvider({ children }) {
       .from('profiles')
       .update({ home_tree: stage })
       .eq('id', session.user.id)
-    if (!error) setProfile(prev => ({ ...prev, home_tree: stage }))
+    if (!error) setProfile(prev => prev ? { ...prev, home_tree: stage } : prev)
   }
 
   return (

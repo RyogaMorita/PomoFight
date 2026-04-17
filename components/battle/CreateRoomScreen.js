@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Share } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Share, Alert } from 'react-native'
 import Icon from '../Icon'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
@@ -37,7 +37,10 @@ export default function CreateRoomScreen({ goal, onMatched, onCancel }) {
       .select()
       .single()
 
-    if (!room) return
+    if (!room) {
+      Alert.alert('エラー', '部屋の作成に失敗しました')
+      return
+    }
     roomRef.current = room.id
     setCode(inviteCode)
 
