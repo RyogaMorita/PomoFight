@@ -18,7 +18,26 @@ export default function FreeMatchScreen({ goal, onJoinRoom, onCancel }) {
   const [refreshing, setRefreshing] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
 
-  useEffect(() => { fetchRooms() }, [])
+  useEffect(() => {
+    cleanupStaleEntry()
+    fetchRooms()
+  }, [])
+
+  async function cleanupStaleEntry() {
+    const { data: stale } = await supabase
+      .from('room_players')
+      .select('room_id, rooms(status, is_public)')
+      .eq('player_id', session.user.id)
+    const toDelete = (stale ?? []).filter(
+      r => r.rooms?.status === 'waiting' && r.rooms?.is_public
+    )
+    for (const r of toDelete) {
+      await supabase.from('room_players')
+        .delete()
+        .eq('room_id', r.room_id)
+        .eq('player_id', session.user.id)
+    }
+  }
 
   async function fetchRooms() {
     const { data } = await supabase
@@ -34,6 +53,9 @@ export default function FreeMatchScreen({ goal, onJoinRoom, onCancel }) {
   }
 
   async function joinRoom(room) {
+    const alreadyIn = room.room_players.some(p => p.player_id === session.user.id)
+    if (alreadyIn) { onJoinRoom(room); return }
+
     if (room.room_players.length >= room.max_players) {
       Alert.alert('満員です', 'この部屋はすでに満員です')
       return

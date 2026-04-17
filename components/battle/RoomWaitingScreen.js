@@ -31,7 +31,8 @@ export default function RoomWaitingScreen({ room, onStart, onCancel }) {
       .from('room_players')
       .select('player_id, profiles(username, rank)')
       .eq('room_id', room.id)
-    setPlayers(data ?? [])
+    const unique = Array.from(new Map((data ?? []).map(p => [p.player_id, p])).values())
+    setPlayers(unique)
   }
 
   function subscribeToRoom() {
@@ -63,12 +64,16 @@ export default function RoomWaitingScreen({ room, onStart, onCancel }) {
   }
 
   async function leaveRoom() {
+    channelRef.current?.unsubscribe()
+    channelRef.current = null
     await supabase.from('room_players')
       .delete()
       .eq('room_id', room.id)
       .eq('player_id', session.user.id)
     if (isHost) {
-      await supabase.from('rooms').delete().eq('id', room.id)
+      await supabase.from('rooms')
+        .update({ status: 'closed' })
+        .eq('id', room.id)
     }
     onCancel()
   }
