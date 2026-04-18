@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import RankingModal from '../../components/RankingModal'
 import FriendModal from '../../components/FriendModal'
-import TreePickerModal from '../../components/TreePickerModal'
+import TreePickerModal, { isHomeFish, homeFishStage } from '../../components/TreePickerModal'
 import { getTreeStage } from '../../components/TreeDisplay'
 import { colors, radius, shadow } from '../../lib/theme'
 
@@ -19,6 +19,15 @@ const TREE_IMAGES = {
   8:  require('../../assets/trees/tree_8.png'),
   9:  require('../../assets/trees/tree_9.png'),
   10: require('../../assets/trees/tree_10.png'),
+}
+
+const FISH_IMAGES = {
+  1: require('../../assets/fish/fish_1.png'),
+  2: require('../../assets/fish/fish_2.png'),
+  3: require('../../assets/fish/fish_3.png'),
+  4: require('../../assets/fish/fish_4.png'),
+  5: require('../../assets/fish/fish_5.png'),
+  6: require('../../assets/fish/fish_6.png'),
 }
 
 const TIERS = [
@@ -121,16 +130,16 @@ export default function HomeScreen({ onBattle, onCreateRoom, onJoinRoom }) {
         <StatChip label="ポモドーロ" value={`${total}`} color={colors.accent} />
       </View>
 
-      {/* ── 中央：木（タップで変更） ── */}
+      {/* ── 中央：木 or 魚（タップで変更） ── */}
       <TouchableOpacity style={styles.arenaWrap} onPress={() => setShowPicker(true)} activeOpacity={0.9}>
         <View style={styles.card}>
           <View style={styles.imageWrap}>
             <Image
-              source={TREE_IMAGES[homeTree]}
+              source={isHomeFish(homeTree) ? FISH_IMAGES[homeFishStage(homeTree)] : TREE_IMAGES[homeTree]}
               style={styles.image}
               resizeMode="cover"
             />
-            </View>
+          </View>
         </View>
       </TouchableOpacity>
 
