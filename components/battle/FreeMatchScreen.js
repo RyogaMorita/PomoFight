@@ -26,7 +26,7 @@ export default function FreeMatchScreen({ goal, onJoinRoom, onCancel }) {
   async function cleanupStaleEntry() {
     const { data: stale } = await supabase
       .from('room_players')
-      .select('room_id, rooms(status, is_public)')
+      .select('room_id, rooms(status, is_public, host_id)')
       .eq('player_id', session.user.id)
     const toDelete = (stale ?? []).filter(
       r => r.rooms?.status === 'waiting' && r.rooms?.is_public
@@ -36,6 +36,11 @@ export default function FreeMatchScreen({ goal, onJoinRoom, onCancel }) {
         .delete()
         .eq('room_id', r.room_id)
         .eq('player_id', session.user.id)
+      if (r.rooms?.host_id === session.user.id) {
+        await supabase.from('rooms')
+          .update({ status: 'closed' })
+          .eq('id', r.room_id)
+      }
     }
   }
 

@@ -417,6 +417,7 @@ export default function FightScreen({ room, goal, onFinish }) {
         onSkip={skipBreak}
         onSubmit={broadcastBreakLog}
         opponentBreakLog={opponentBreakLog}
+        opponent={opponent}
         room={room}
         goal={goal}
         onFinish={onFinish}
@@ -579,7 +580,7 @@ const FOCUS_SCORES = [
   { score: 5, label: '🔥', desc: '完璧' },
 ]
 
-function BreakLogScreen({ breakLeft, isBreak, onSkip, onSubmit, opponentBreakLog, room, goal, onFinish, session }) {
+function BreakLogScreen({ breakLeft, isBreak, onSkip, onSubmit, opponentBreakLog, opponent, room, goal, onFinish, session }) {
   const [log, setLog] = useState('')
   const [focusScore, setFocusScore] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -636,7 +637,18 @@ function BreakLogScreen({ breakLeft, isBreak, onSkip, onSubmit, opponentBreakLog
       {!isBreak && <Text style={styles.bigEmoji}>🌳</Text>}
       <Text style={styles.title}>ポモドーロ完了！</Text>
 
-      {/* 相手のログ */}
+      {/* 相手プロフィール */}
+      {opponent && !opponentBreakLog && (
+        <View style={styles.opponentMiniCard}>
+          <Text style={styles.vsText}>VS</Text>
+          <View>
+            <Text style={styles.opponentNameSmall}>{opponent.username}</Text>
+            <Text style={styles.opponentRankSmall}>Rank {opponent.rank}</Text>
+          </View>
+        </View>
+      )}
+
+      {/* 相手のログ（受信後は相手カードを置き換え） */}
       {opponentBreakLog && (
         <View style={styles.opponentLogBox}>
           <Text style={styles.opponentLogLabel}>💬 {opponentBreakLog.username} のログ</Text>
@@ -778,6 +790,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card, marginTop: 4,
   },
   skipBreakText: { color: colors.textSub, fontSize: 14 },
+
+  opponentMiniCard: {
+    width: '100%', flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: colors.card, borderRadius: radius.md,
+    padding: 12, marginBottom: 12,
+    borderWidth: 1, borderColor: colors.border,
+  },
 
   opponentLogBox: {
     width: '100%', backgroundColor: colors.cardSub,
