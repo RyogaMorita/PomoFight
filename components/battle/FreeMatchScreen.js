@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   TextInput, Modal, ActivityIndicator, RefreshControl,
@@ -18,10 +18,26 @@ export default function FreeMatchScreen({ goal, onJoinRoom, onCancel }) {
   const [refreshing, setRefreshing] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
 
+  const channelRef = useRef(null)
+
   useEffect(() => {
     cleanupStaleEntry()
     fetchRooms()
+    subscribeToRooms()
+    return () => { channelRef.current?.unsubscribe() }
   }, [])
+
+  function subscribeToRooms() {
+    channelRef.current = supabase
+      .channel('free-match-rooms')
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'rooms',
+      }, () => fetchRooms())
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'room_players',
+      }, () => fetchRooms())
+      .subscribe()
+  }
 
   async function cleanupStaleEntry() {
     const { data: stale } = await supabase

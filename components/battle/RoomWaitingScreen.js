@@ -70,10 +70,17 @@ export default function RoomWaitingScreen({ room, onStart, onCancel }) {
       .delete()
       .eq('room_id', room.id)
       .eq('player_id', session.user.id)
+    // ホストが退出 or 残り0人になった部屋は閉じる
     if (isHost) {
-      await supabase.from('rooms')
-        .update({ status: 'closed' })
-        .eq('id', room.id)
+      await supabase.from('rooms').update({ status: 'closed' }).eq('id', room.id)
+    } else {
+      const { count } = await supabase
+        .from('room_players')
+        .select('*', { count: 'exact', head: true })
+        .eq('room_id', room.id)
+      if ((count ?? 0) === 0) {
+        await supabase.from('rooms').update({ status: 'closed' }).eq('id', room.id)
+      }
     }
     onCancel()
   }
