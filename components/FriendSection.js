@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   Alert, ActivityIndicator, ScrollView
 } from 'react-native'
+import Icon from './Icon'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { colors, radius, shadow } from '../lib/theme'
@@ -97,7 +98,10 @@ export default function FriendSection() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>👥 フレンド</Text>
+      <View style={styles.sectionTitleRow}>
+        <Icon name="friends" size={18} />
+        <Text style={styles.sectionTitle}>フレンド</Text>
+      </View>
 
       {/* 自分のコード */}
       <View style={styles.myCode}>
@@ -140,7 +144,10 @@ export default function FriendSection() {
                   <Text style={styles.friendRank}>Rank {f.profiles.rank}</Text>
                 </View>
                 <TouchableOpacity style={styles.battleBtn}>
-                  <Text style={styles.battleBtnText}>⚔️ 対戦</Text>
+                  <View style={styles.battleBtnInner}>
+                    <Icon name="sword" size={14} />
+                    <Text style={styles.battleBtnText}>対戦</Text>
+                  </View>
                 </TouchableOpacity>
               </View>
             ))
@@ -207,7 +214,8 @@ export default function FriendSection() {
 
 const styles = StyleSheet.create({
   container: { marginTop: 24 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 12 },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: colors.text },
 
   myCode: {
     backgroundColor: colors.card, borderRadius: radius.md, padding: 14, marginBottom: 16, ...shadow,
@@ -239,6 +247,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary, borderRadius: radius.sm,
     paddingVertical: 6, paddingHorizontal: 12,
   },
+  battleBtnInner: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   battleBtnText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
 
   pendingSection: { marginBottom: 16 },

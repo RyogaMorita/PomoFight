@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform
 } from 'react-native'
+import Icon from '../Icon'
 import { colors, radius, shadow } from '../../lib/theme'
 
 const PRESETS = ['勉強', '読書', '仕事', '運動', '資格勉強', 'プログラミング']
@@ -16,7 +17,10 @@ export default function GoalScreen({ onStart, onTestStart, onCreateRoom, onJoinR
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <Text style={styles.title}>⚔️ バトル開始</Text>
+      <View style={styles.titleRow}>
+        <Icon name="sword" size={28} />
+        <Text style={styles.title}>バトル開始</Text>
+      </View>
       <Text style={styles.subtitle}>今回の目的を入力しよう</Text>
 
       <TextInput
@@ -49,7 +53,10 @@ export default function GoalScreen({ onStart, onTestStart, onCreateRoom, onJoinR
         onPress={() => goal && onStart(goal)}
         disabled={!goal}
       >
-        <Text style={styles.buttonText}>⚔️ ランダムマッチ</Text>
+        <View style={styles.buttonInner}>
+          <Icon name="sword" size={20} />
+          <Text style={styles.buttonText}>ランダムマッチ</Text>
+        </View>
       </TouchableOpacity>
 
       {/* フレンドバトル / フリーマッチ */}
@@ -59,7 +66,7 @@ export default function GoalScreen({ onStart, onTestStart, onCreateRoom, onJoinR
           onPress={() => goal && onCreateRoom(goal)}
           disabled={!goal}
         >
-          <Text style={styles.friendBtnIcon}>🏠</Text>
+          <Icon name="home" size={28} />
           <Text style={styles.friendBtnText}>部屋を作る</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -67,7 +74,7 @@ export default function GoalScreen({ onStart, onTestStart, onCreateRoom, onJoinR
           onPress={() => goal && onJoinRoom(goal)}
           disabled={!goal}
         >
-          <Text style={styles.friendBtnIcon}>🔑</Text>
+          <Icon name="key" size={28} />
           <Text style={styles.friendBtnText}>コードで参加</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -75,7 +82,7 @@ export default function GoalScreen({ onStart, onTestStart, onCreateRoom, onJoinR
           onPress={() => goal && onFreeMatch(goal)}
           disabled={!goal}
         >
-          <Text style={styles.friendBtnIcon}>🌐</Text>
+          <Icon name="internet" size={28} />
           <Text style={styles.friendBtnText}>フリーマッチ</Text>
         </TouchableOpacity>
       </View>
@@ -85,7 +92,10 @@ export default function GoalScreen({ onStart, onTestStart, onCreateRoom, onJoinR
         onPress={() => goal && onTestStart(goal, TEST_ROOM)}
         disabled={!goal}
       >
-        <Text style={styles.testButtonText}>🤖 テスト対戦（ひとりで試す）</Text>
+        <View style={styles.testButtonInner}>
+          <Icon name="robot" size={18} />
+          <Text style={styles.testButtonText}>テスト対戦（ひとりで試す）</Text>
+        </View>
       </TouchableOpacity>
     </KeyboardAvoidingView>
   )
@@ -96,7 +106,8 @@ const styles = StyleSheet.create({
     flex: 1, backgroundColor: colors.bg,
     alignItems: 'center', justifyContent: 'center', padding: 24,
   },
-  title:    { fontSize: 28, fontWeight: 'bold', color: colors.text, marginBottom: 8 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+  title:    { fontSize: 28, fontWeight: 'bold', color: colors.text },
   subtitle: { fontSize: 15, color: colors.textSub, marginBottom: 32 },
 
   input: {
@@ -123,6 +134,7 @@ const styles = StyleSheet.create({
     marginBottom: 12, ...shadow,
   },
   buttonDisabled: { opacity: 0.4 },
+  buttonInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 
   friendRow: { flexDirection: 'row', gap: 12, width: '100%', marginBottom: 12 },
@@ -131,12 +143,12 @@ const styles = StyleSheet.create({
     paddingVertical: 16, alignItems: 'center', gap: 4,
     borderWidth: 1, borderColor: colors.border, ...shadow,
   },
-  friendBtnIcon: { fontSize: 24 },
   friendBtnText: { fontSize: 14, fontWeight: '700', color: colors.text },
 
   testButton: {
     width: '100%', borderRadius: radius.md, padding: 14,
     alignItems: 'center', borderWidth: 1, borderColor: colors.border,
   },
+  testButtonInner: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   testButtonText: { color: colors.textSub, fontSize: 15 },
 })

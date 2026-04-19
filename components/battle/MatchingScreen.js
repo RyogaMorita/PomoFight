@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing } from 'react-native'
+import { View, Text, Image, TouchableOpacity, StyleSheet, Animated, Easing } from 'react-native'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { colors, radius, shadow } from '../../lib/theme'
@@ -165,7 +165,9 @@ export default function MatchingScreen({ goal, onMatched, onCancel }) {
         <RadarRing delay={0}    color={ringColor} />
         <RadarRing delay={700}  color={ringColor} />
         <RadarRing delay={1400} color={ringColor} />
-        <Animated.Text style={[styles.icon, { transform: [{ scale: iconPulse }] }]}>⚔️</Animated.Text>
+        <Animated.View style={{ transform: [{ scale: iconPulse }] }}>
+          <Image source={require('../../assets/Wsord.png')} style={styles.icon} resizeMode="contain" />
+        </Animated.View>
       </View>
 
       <Text style={styles.title}>マッチング中</Text>
@@ -219,7 +221,7 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     borderWidth: 2,
   },
-  icon: { fontSize: 52 },
+  icon: { width: 80, height: 80 },
 
   title: {
     fontSize: 26, fontWeight: '900', color: colors.text, marginBottom: 14,

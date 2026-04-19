@@ -106,8 +106,17 @@ export function AuthProvider({ children }) {
     if (!error) setProfile(prev => prev ? { ...prev, home_tree: stage } : prev)
   }
 
+  async function updateProfileIcon(icon) {
+    if (!session) return
+    const { error } = await supabase
+      .from('profiles')
+      .update({ profile_icon: icon })
+      .eq('id', session.user.id)
+    if (!error) setProfile(prev => prev ? { ...prev, profile_icon: icon } : prev)
+  }
+
   return (
-    <AuthContext.Provider value={{ session, profile, loading, createProfile, linkEmail, fetchProfile, updateHomeTree }}>
+    <AuthContext.Provider value={{ session, profile, loading, createProfile, linkEmail, fetchProfile, updateHomeTree, updateProfileIcon }}>
       {children}
     </AuthContext.Provider>
   )

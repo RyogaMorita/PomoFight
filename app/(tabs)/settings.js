@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView, Alert } from 'react-native'
+import Icon from '../../components/Icon'
 import { getSettings, saveSetting } from '../../lib/settings'
 import { colors, radius, shadow } from '../../lib/theme'
 
@@ -25,7 +26,10 @@ export default function SettingsScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>⚙️ 設定</Text>
+        <View style={styles.headerTitleRow}>
+          <Icon name="setting" size={24} />
+          <Text style={styles.headerTitle}>設定</Text>
+        </View>
       </View>
 
       {/* ── バトル設定 ── */}
@@ -42,14 +46,16 @@ export default function SettingsScreen() {
       <Text style={styles.sectionLabel}>通知・サウンド</Text>
       <View style={styles.card}>
         <SettingRow
-          label="🔔 バトル通知"
+          icon="bell"
+          label="バトル通知"
           desc="残り時間・完了などの通知"
           value={settings.notifications}
           onToggle={() => toggle('notifications')}
         />
         <View style={styles.divider} />
         <SettingRow
-          label="🔊 サウンド"
+          icon="speaker"
+          label="サウンド"
           desc="バトル中のアラート音"
           value={settings.sound}
           onToggle={() => toggle('sound')}
@@ -75,11 +81,18 @@ export default function SettingsScreen() {
   )
 }
 
-function SettingRow({ label, desc, value, onToggle }) {
+function SettingRow({ label, icon, desc, value, onToggle }) {
   return (
     <View style={styles.settingRow}>
       <View style={styles.settingLeft}>
-        <Text style={styles.itemTitle}>{label}</Text>
+        {icon ? (
+          <View style={styles.settingLabelRow}>
+            <Icon name={icon} size={18} />
+            <Text style={styles.itemTitle}>{label}</Text>
+          </View>
+        ) : (
+          <Text style={styles.itemTitle}>{label}</Text>
+        )}
         <Text style={styles.itemDesc}>{desc}</Text>
       </View>
       <Switch
@@ -101,6 +114,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerTitle: { fontSize: 22, fontWeight: 'bold', color: colors.text },
 
   sectionLabel: {
@@ -132,6 +146,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   settingLeft: { flex: 1, marginRight: 12 },
+  settingLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
 
   divider: { height: 1, backgroundColor: colors.border, marginVertical: 10 },
 

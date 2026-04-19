@@ -1,11 +1,20 @@
 import { useState } from 'react'
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform
+  ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+  Image, Modal
 } from 'react-native'
+import Icon from '../../components/Icon'
 import { useAuth } from '../../context/AuthContext'
 import FriendSection from '../../components/FriendSection'
 import { colors, radius, shadow } from '../../lib/theme'
+
+const PROFILE_ICONS = {
+  bear: require('../../assets/profile_icon/bear_icon.png'),
+  cat:  require('../../assets/profile_icon/cat_icon.png'),
+  dog:  require('../../assets/profile_icon/dog_icon.png'),
+}
+const PROFILE_ICON_KEYS = ['bear', 'cat', 'dog']
 
 // ── ランクティア ─────────────────────────────────────────────
 const TIERS = [
@@ -52,8 +61,9 @@ const ACHIEVEMENTS = [
 ]
 
 export default function ProfileScreen() {
-  const { profile, linkEmail } = useAuth()
-  const [showBackup, setShowBackup] = useState(false)
+  const { profile, linkEmail, updateProfileIcon } = useAuth()
+  const [showBackup, setShowBackup]       = useState(false)
+  const [showIconPicker, setShowIconPicker] = useState(false)
 
   if (!profile) {
     return (
@@ -77,12 +87,42 @@ export default function ProfileScreen() {
 
       {/* ── ヘッダー ── */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>👤 プロフィール</Text>
+        <View style={styles.headerTitleRow}>
+          <Icon name="profile" size={24} />
+          <Text style={styles.headerTitle}>プロフィール</Text>
+        </View>
       </View>
+
+      {/* ── アイコン選択モーダル ── */}
+      <Modal visible={showIconPicker} transparent animationType="fade" onRequestClose={() => setShowIconPicker(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowIconPicker(false)}>
+          <View style={styles.iconPickerBox}>
+            <Text style={styles.iconPickerTitle}>アイコンを選ぶ</Text>
+            <View style={styles.iconPickerRow}>
+              {PROFILE_ICON_KEYS.map(key => (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.iconOption, profile.profile_icon === key && styles.iconOptionSelected]}
+                  onPress={() => { updateProfileIcon(key); setShowIconPicker(false) }}
+                >
+                  <Image source={PROFILE_ICONS[key]} style={styles.iconOptionImage} resizeMode="contain" />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* ── プロフィールカード ── */}
       <View style={styles.profileCard}>
-        <View style={[styles.avatarPlaceholder, { borderColor: tier.color }]} />
+        <TouchableOpacity onPress={() => setShowIconPicker(true)} activeOpacity={0.8}>
+          {profile.profile_icon && PROFILE_ICONS[profile.profile_icon]
+            ? <Image source={PROFILE_ICONS[profile.profile_icon]} style={[styles.avatarImage, { borderColor: tier.color }]} resizeMode="contain" />
+            : <View style={[styles.avatarPlaceholder, { borderColor: tier.color }]}>
+                <Text style={styles.avatarEditHint}>タップして選択</Text>
+              </View>
+          }
+        </TouchableOpacity>
         <Text style={styles.username}>{profile.username}</Text>
         <Text style={styles.titleText}>{title}</Text>
         <View style={[styles.tierBadge, { borderColor: tier.color, backgroundColor: tier.color + '18' }]}>
@@ -116,7 +156,10 @@ export default function ProfileScreen() {
 
       {/* ── 実績 ── */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🏅 実績  {unlocked.length}/{ACHIEVEMENTS.length}</Text>
+        <View style={styles.sectionTitleRow}>
+          <Icon name="star" size={18} />
+          <Text style={styles.sectionTitle}>実績  {unlocked.length}/{ACHIEVEMENTS.length}</Text>
+        </View>
 
         {/* 解放済み */}
         <View style={styles.badgeGrid}>
@@ -130,7 +173,7 @@ export default function ProfileScreen() {
           {/* 未解放（薄く表示） */}
           {locked.map(a => (
             <View key={a.id} style={[styles.badge, styles.badgeLocked]}>
-              <Text style={[styles.badgeEmoji, styles.badgeLockedEmoji]}>🔒</Text>
+              <Icon name="lock" size={20} />
               <Text style={[styles.badgeLabel, styles.badgeLockedText]}>{a.label}</Text>
               <Text style={[styles.badgeDesc, styles.badgeLockedText]}>{a.desc}</Text>
             </View>
@@ -145,7 +188,10 @@ export default function ProfileScreen() {
 
       {/* ── アカウントバックアップ ── */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🔒 アカウントバックアップ</Text>
+        <View style={styles.sectionTitleRow}>
+          <Icon name="lock" size={18} />
+          <Text style={styles.sectionTitle}>アカウントバックアップ</Text>
+        </View>
         <Text style={styles.sectionDesc}>メールアドレスを登録するとデータを引き継げます</Text>
         {!showBackup ? (
           <TouchableOpacity style={styles.backupBtn} onPress={() => setShowBackup(true)}>
@@ -208,6 +254,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerTitle: { fontSize: 22, fontWeight: 'bold', color: colors.text },
 
   // プロフィールカード
@@ -216,11 +263,36 @@ const styles = StyleSheet.create({
     paddingVertical: 28, paddingHorizontal: 20,
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  iconPickerBox: {
+    backgroundColor: colors.card, borderRadius: radius.lg,
+    padding: 24, alignItems: 'center', gap: 16, ...shadow,
+  },
+  iconPickerTitle: { fontSize: 16, fontWeight: 'bold', color: colors.text },
+  iconPickerRow:   { flexDirection: 'row', gap: 16 },
+  iconOption: {
+    width: 72, height: 72, borderRadius: radius.md,
+    borderWidth: 2, borderColor: colors.border,
+    backgroundColor: colors.cardSub, alignItems: 'center', justifyContent: 'center',
+  },
+  iconOptionSelected: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
+  iconOptionImage:    { width: 56, height: 56 },
+
+  avatarImage: {
+    width: 88, height: 88, borderRadius: 44,
+    borderWidth: 3, marginBottom: 12,
+    backgroundColor: colors.cardSub,
+  },
   avatarPlaceholder: {
     width: 88, height: 88, borderRadius: 44,
     backgroundColor: colors.cardSub,
     borderWidth: 3, marginBottom: 12,
+    alignItems: 'center', justifyContent: 'center',
   },
+  avatarEditHint: { fontSize: 10, color: colors.textLight, textAlign: 'center' },
   username:    { fontSize: 24, fontWeight: 'bold', color: colors.text, marginBottom: 4 },
   titleText:   { fontSize: 14, color: colors.textSub, marginBottom: 12 },
   tierBadge: {
@@ -251,7 +323,8 @@ const styles = StyleSheet.create({
     marginBottom: 8, padding: 16,
     borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.border,
   },
-  sectionTitle: { fontSize: 15, fontWeight: 'bold', color: colors.text, marginBottom: 4 },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  sectionTitle: { fontSize: 15, fontWeight: 'bold', color: colors.text },
   sectionDesc:  { fontSize: 12, color: colors.textSub, marginBottom: 14 },
 
   // 実績バッジ

@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   FlatList, Share, ActivityIndicator
 } from 'react-native'
+import Icon from '../Icon'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { colors, radius, shadow } from '../../lib/theme'
@@ -30,7 +31,8 @@ export default function RoomWaitingScreen({ room, onStart, onCancel }) {
       .from('room_players')
       .select('player_id, profiles(username, rank)')
       .eq('room_id', room.id)
-    setPlayers(data ?? [])
+    const unique = Array.from(new Map((data ?? []).map(p => [p.player_id, p])).values())
+    setPlayers(unique)
   }
 
   function subscribeToRoom() {
@@ -62,12 +64,16 @@ export default function RoomWaitingScreen({ room, onStart, onCancel }) {
   }
 
   async function leaveRoom() {
+    channelRef.current?.unsubscribe()
+    channelRef.current = null
     await supabase.from('room_players')
       .delete()
       .eq('room_id', room.id)
       .eq('player_id', session.user.id)
     if (isHost) {
-      await supabase.from('rooms').delete().eq('id', room.id)
+      await supabase.from('rooms')
+        .update({ status: 'closed' })
+        .eq('id', room.id)
     }
     onCancel()
   }
@@ -97,12 +103,18 @@ export default function RoomWaitingScreen({ room, onStart, onCancel }) {
           <Text style={styles.roomInfoValue}>{room.theme}</Text>
         </View>
         <View style={styles.roomInfoRow}>
-          <Text style={styles.roomInfoLabel}>👥 定員</Text>
+          <View style={styles.roomInfoLabelRow}>
+            <Icon name="friends" size={14} />
+            <Text style={styles.roomInfoLabel}>定員</Text>
+          </View>
           <Text style={styles.roomInfoValue}>{players.length} / {maxPlayers}人</Text>
         </View>
         {room.invite_code && (
           <View style={styles.roomInfoRow}>
-            <Text style={styles.roomInfoLabel}>🔑 招待コード</Text>
+            <View style={styles.roomInfoLabelRow}>
+              <Icon name="key" size={14} />
+              <Text style={styles.roomInfoLabel}>招待コード</Text>
+            </View>
             <TouchableOpacity onPress={shareCode} style={styles.codeWrap}>
               <Text style={styles.inviteCode}>{room.invite_code}</Text>
               <Text style={styles.shareHint}>📤 共有</Text>
@@ -158,7 +170,10 @@ export default function RoomWaitingScreen({ room, onStart, onCancel }) {
             >
               {starting
                 ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.startBtnText}>⚔️ バトル開始！（{players.length}人）</Text>
+                : <View style={styles.startBtnInner}>
+                    <Icon name="sword" size={20} />
+                    <Text style={styles.startBtnText}>バトル開始！（{players.length}人）</Text>
+                  </View>
               }
             </TouchableOpacity>
           </>
@@ -191,6 +206,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   roomInfoRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  roomInfoLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   roomInfoLabel: { fontSize: 13, color: colors.textSub, fontWeight: '600' },
   roomInfoValue: { fontSize: 14, color: colors.text, fontWeight: '700' },
   codeWrap:      { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -238,6 +254,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18, alignItems: 'center', ...shadow,
   },
   startBtnDisabled: { opacity: 0.5 },
+  startBtnInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   startBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 
   waitingBox: {

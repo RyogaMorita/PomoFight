@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native'
 import { colors, radius } from '../../lib/theme'
 import HomeScreen from './index'
 import BattleScreen from './battle'
@@ -8,11 +8,11 @@ import ProfileScreen from './profile'
 import SettingsScreen from './settings'
 
 const TABS = [
-  { key: 'home',     label: 'ホーム',       emoji: '🎒' },
-  { key: 'diary',    label: '日記',         emoji: '📖' },
-  { key: 'battle',   label: 'バトル',       emoji: '⚔️' },
-  { key: 'profile',  label: 'プロフィール', emoji: '👤' },
-  { key: 'settings', label: '設定',         emoji: '⚙️' },
+  { key: 'home',     label: 'ホーム',       emoji: null,  image: require('../../assets/sprite/home.png') },
+  { key: 'diary',    label: '日記',         emoji: null,  image: require('../../assets/sprite/analize.png') },
+  { key: 'battle',   label: 'バトル',       emoji: null,  image: require('../../assets/sprite/Wsord.png') },
+  { key: 'profile',  label: 'プロフィール', emoji: null,  image: require('../../assets/sprite/profile.png') },
+  { key: 'settings', label: '設定',         emoji: null,  image: require('../../assets/sprite/setting.png') },
 ]
 
 export default function TabLayout() {
@@ -67,7 +67,10 @@ export default function TabLayout() {
                 onPress={() => tab.key === 'battle' ? goToBattle('goal') : setActiveTab(tab.key)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.tabEmoji}>{tab.emoji}</Text>
+                {tab.image
+                  ? <Image source={tab.image} style={[styles.tabImage, { opacity: active ? 1 : 0.4 }]} resizeMode="contain" />
+                  : <Text style={styles.tabEmoji}>{tab.emoji}</Text>
+                }
                 <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
                   {tab.label}
                 </Text>
@@ -107,6 +110,7 @@ const styles = StyleSheet.create({
   },
 
   tabEmoji: { fontSize: 20 },
+  tabImage: { width: 22, height: 22 },
   tabLabel: { fontSize: 10, color: colors.textLight, marginTop: 2 },
   tabLabelActive: { color: colors.primary, fontWeight: '700' },
 })

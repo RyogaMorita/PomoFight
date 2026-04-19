@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, Modal, TouchableOpacity,
   ScrollView, ActivityIndicator
 } from 'react-native'
+import Icon from './Icon'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { colors, radius, shadow } from '../lib/theme'
@@ -78,7 +79,10 @@ export default function RankingModal({ visible, onClose }) {
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>🏆 ランキング</Text>
+          <View style={styles.titleRow}>
+            <Icon name="trophy" size={22} />
+            <Text style={styles.title}>ランキング</Text>
+          </View>
           <TouchableOpacity onPress={onClose}>
             <Text style={styles.close}>✕</Text>
           </TouchableOpacity>
@@ -98,9 +102,10 @@ export default function RankingModal({ visible, onClose }) {
             style={[styles.tabBtn, tab === 'rate' && styles.tabBtnActive]}
             onPress={() => setTab('rate')}
           >
-            <Text style={[styles.tabBtnText, tab === 'rate' && styles.tabBtnTextActive]}>
-              🏅 レート
-            </Text>
+            <View style={styles.tabInner}>
+              <Icon name="star" size={14} />
+              <Text style={[styles.tabBtnText, tab === 'rate' && styles.tabBtnTextActive]}>レート</Text>
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -171,7 +176,9 @@ const styles = StyleSheet.create({
     padding: 20, paddingTop: 56, borderBottomWidth: 1, borderBottomColor: colors.border,
     backgroundColor: colors.card,
   },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: 20, fontWeight: 'bold', color: colors.text },
+  tabInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   close: { fontSize: 20, color: colors.textSub, padding: 4 },
 
   tabs: {

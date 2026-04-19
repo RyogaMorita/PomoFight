@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native'
+import Icon from '../../components/Icon'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import RankingModal from '../../components/RankingModal'
@@ -113,10 +114,10 @@ export default function HomeScreen({ onBattle, onCreateRoom, onJoinRoom }) {
             <Text style={styles.streakText}>🔥{streak}</Text>
           </View>
           <TouchableOpacity style={styles.iconBtn} onPress={() => setShowFriends(true)}>
-            <Text style={styles.iconBtnText}>👥</Text>
+            <Icon name="friends" size={22} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconBtn} onPress={() => setShowRanking(true)}>
-            <Text style={styles.iconBtnText}>🏆</Text>
+            <Icon name="trophy" size={22} />
           </TouchableOpacity>
         </View>
       </View>
@@ -146,14 +147,23 @@ export default function HomeScreen({ onBattle, onCreateRoom, onJoinRoom }) {
       {/* ── ボタン群 ── */}
       <View style={styles.buttonSection}>
         <TouchableOpacity style={styles.battleButton} onPress={onBattle} activeOpacity={0.85}>
-          <Text style={styles.battleButtonText}>⚔️ バトル開始</Text>
+          <View style={styles.battleButtonInner}>
+            <Icon name="sword" size={24} />
+            <Text style={styles.battleButtonText}>バトル開始</Text>
+          </View>
         </TouchableOpacity>
         <View style={styles.subButtons}>
           <TouchableOpacity style={styles.subButton} onPress={onJoinRoom}>
-            <Text style={styles.subButtonText}>👥 フレンドバトル</Text>
+            <View style={styles.subButtonInner}>
+              <Icon name="friends" size={18} />
+              <Text style={styles.subButtonText}>フレンドバトル</Text>
+            </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.subButton} onPress={onCreateRoom}>
-            <Text style={styles.subButtonText}>🚪 部屋を作る</Text>
+            <View style={styles.subButtonInner}>
+              <Icon name="door" size={18} />
+              <Text style={styles.subButtonText}>部屋を作る</Text>
+            </View>
           </TouchableOpacity>
         </View>
       </View>
@@ -248,7 +258,9 @@ const styles = StyleSheet.create({
     shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
   },
+  battleButtonInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   battleButtonText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
+  subButtonInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   subButtons: { flexDirection: 'row', gap: 10 },
   subButton: {
     flex: 1, backgroundColor: colors.cardSub, borderRadius: radius.md,

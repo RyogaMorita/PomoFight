@@ -4,6 +4,7 @@ import {
 } from 'react-native'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
+import Icon from '../../components/Icon'
 import { colors, radius, shadow } from '../../lib/theme'
 
 const FOCUS_EMOJI  = ['', '😵', '😕', '😐', '😊', '🔥']
@@ -128,7 +129,10 @@ function Heatmap({ logs }) {
 
   return (
     <View style={styles.hmCard}>
-      <Text style={styles.hmTitle}>📅 全期間の記録</Text>
+      <View style={styles.hmTitleRow}>
+        <Icon name="calendar" size={14} />
+        <Text style={styles.hmTitle}>全期間の記録</Text>
+      </View>
       <View style={styles.hmOuter}>
         {/* 曜日ラベル */}
         <View style={styles.hmDayLabels}>
@@ -195,7 +199,10 @@ export default function DiaryScreen() {
     <View style={styles.container}>
       {/* ── ヘッダー ── */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>📖 日記</Text>
+        <View style={styles.headerTitleRow}>
+          <Icon name="analize" size={24} />
+          <Text style={styles.headerTitle}>日記</Text>
+        </View>
         <Text style={styles.headerSub}>
           {today.getMonth() + 1}月{today.getDate()}日
         </Text>
@@ -305,6 +312,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerTitle: { fontSize: 22, fontWeight: 'bold', color: colors.text },
   headerSub:   { fontSize: 13, color: colors.textSub, paddingBottom: 2 },
 
@@ -336,7 +344,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card, borderRadius: radius.lg,
     padding: 16, marginBottom: 20, ...shadow,
   },
-  hmTitle: { fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 10 },
+  hmTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
+  hmTitle: { fontSize: 13, fontWeight: '700', color: colors.text },
   hmOuter: { flexDirection: 'row', gap: 4 },
   hmDayLabels: { gap: CELL_GAP, paddingTop: 16 },
   hmDayLabel: {
