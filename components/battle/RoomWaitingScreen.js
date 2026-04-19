@@ -59,10 +59,12 @@ export default function RoomWaitingScreen({ room, onStart, onCancel }) {
 
   async function startBattle() {
     setStarting(true)
-    await supabase.from('rooms').update({ status: 'active' }).eq('id', room.id)
-    // ホストは直接 onStart（非ホストは Realtime 経由）
     channelRef.current?.unsubscribe()
     channelRef.current = null
+    if (players.length >= 2) {
+      // 複数人: 全員に通知するためDB更新（非ホストはRealtimeで受信）
+      await supabase.from('rooms').update({ status: 'active' }).eq('id', room.id)
+    }
     onStart()
   }
 
