@@ -19,45 +19,46 @@ export default function FreeMatchScreen({ goal, onJoinRoom, onCancel }) {
   const [showCreate, setShowCreate] = useState(false)
 
   const channelRef = useRef(null)
+  const pollRef    = useRef(null)
 
   useEffect(() => {
-    cleanupStaleEntry()
-    fetchRooms()
+    async function init() {
+      await cleanupStaleEntry()
+      fetchRooms()
+    }
+    init()
     subscribeToRooms()
-    return () => { channelRef.current?.unsubscribe() }
+    pollRef.current = setInterval(fetchRooms, 8000)
+    return () => {
+      channelRef.current?.unsubscribe()
+      clearInterval(pollRef.current)
+    }
   }, [])
 
   function subscribeToRooms() {
     channelRef.current = supabase
       .channel('free-match-rooms')
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'rooms',
-      }, () => fetchRooms())
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'room_players',
-      }, () => fetchRooms())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, fetchRooms)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_players' }, fetchRooms)
       .subscribe()
   }
 
   async function cleanupStaleEntry() {
-    // 自分がホストの待機中パブリック部屋をすべてclose
+    // 自分がホストの待機中部屋をすべてclose（is_public問わず）
     const { data: hosted } = await supabase
       .from('rooms')
       .select('id')
       .eq('host_id', session.user.id)
       .eq('status', 'waiting')
-      .eq('is_public', true)
     for (const r of (hosted ?? [])) {
       await supabase.from('rooms').update({ status: 'closed' }).eq('id', r.id)
     }
-    // 自分のroom_playersエントリを待機中パブリック部屋から削除
+    // 自分のroom_playersエントリを待機中部屋から削除
     const { data: stale } = await supabase
       .from('room_players')
-      .select('room_id, rooms(status, is_public)')
+      .select('room_id, rooms(status)')
       .eq('player_id', session.user.id)
-    const toDelete = (stale ?? []).filter(
-      r => r.rooms?.status === 'waiting' && r.rooms?.is_public
-    )
+    const toDelete = (stale ?? []).filter(r => r.rooms?.status === 'waiting')
     for (const r of toDelete) {
       await supabase.from('room_players')
         .delete()
