@@ -71,16 +71,16 @@ export default function RoomWaitingScreen({ room, onStart, onCancel }) {
       .eq('room_id', room.id)
       .eq('player_id', session.user.id)
     if (isHost) {
-      // ホスト退出 → 即close
-      await supabase.from('rooms').update({ status: 'closed' }).eq('id', room.id)
+      // ホスト退出 → 部屋ごと削除
+      await supabase.from('room_players').delete().eq('room_id', room.id)
+      await supabase.from('rooms').delete().eq('id', room.id)
     } else {
-      // 残り0人なら close
       const { count } = await supabase
         .from('room_players')
         .select('*', { count: 'exact', head: true })
         .eq('room_id', room.id)
       if ((count ?? 0) === 0) {
-        await supabase.from('rooms').update({ status: 'closed' }).eq('id', room.id)
+        await supabase.from('rooms').delete().eq('id', room.id)
       }
     }
     onCancel()
@@ -174,7 +174,7 @@ export default function RoomWaitingScreen({ room, onStart, onCancel }) {
             <TouchableOpacity
               style={[styles.startBtn, starting && styles.startBtnDisabled]}
               onPress={startBattle}
-              disabled={starting || players.length < 2}
+              disabled={starting || players.length < 1}
             >
               {starting
                 ? <ActivityIndicator color="#fff" />
