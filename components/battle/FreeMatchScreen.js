@@ -40,9 +40,20 @@ export default function FreeMatchScreen({ goal, onJoinRoom, onCancel }) {
   }
 
   async function cleanupStaleEntry() {
+    // 自分がホストの待機中パブリック部屋をすべてclose
+    const { data: hosted } = await supabase
+      .from('rooms')
+      .select('id')
+      .eq('host_id', session.user.id)
+      .eq('status', 'waiting')
+      .eq('is_public', true)
+    for (const r of (hosted ?? [])) {
+      await supabase.from('rooms').update({ status: 'closed' }).eq('id', r.id)
+    }
+    // 自分のroom_playersエントリを待機中パブリック部屋から削除
     const { data: stale } = await supabase
       .from('room_players')
-      .select('room_id, rooms(status, is_public, host_id)')
+      .select('room_id, rooms(status, is_public)')
       .eq('player_id', session.user.id)
     const toDelete = (stale ?? []).filter(
       r => r.rooms?.status === 'waiting' && r.rooms?.is_public
@@ -52,11 +63,6 @@ export default function FreeMatchScreen({ goal, onJoinRoom, onCancel }) {
         .delete()
         .eq('room_id', r.room_id)
         .eq('player_id', session.user.id)
-      if (r.rooms?.host_id === session.user.id) {
-        await supabase.from('rooms')
-          .update({ status: 'closed' })
-          .eq('id', r.room_id)
-      }
     }
   }
 

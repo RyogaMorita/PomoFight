@@ -12,6 +12,7 @@ import {
   requestNotificationPermission,
   scheduleBattleNotifications,
   cancelPomodorNotification,
+  notifyPomodoroComplete,
   setupNotificationChannel,
 } from '../../lib/notifications'
 import { getSettings } from '../../lib/settings'
@@ -350,6 +351,7 @@ export default function FightScreen({ room, goal, onFinish }) {
           pomodoroTimer.current = null
           stopFaceupTimer()
           Vibration.cancel()
+          notifyPomodoroComplete()
           growTree()
           startBreak()
           return 0
