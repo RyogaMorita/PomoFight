@@ -166,7 +166,7 @@ export default function MatchingScreen({ goal, onMatched, onCancel }) {
         <RadarRing delay={700}  color={ringColor} />
         <RadarRing delay={1400} color={ringColor} />
         <Animated.View style={{ transform: [{ scale: iconPulse }] }}>
-          <Image source={require('../../assets/Wsord.png')} style={styles.icon} resizeMode="contain" />
+          <Image source={require('../../assets/sprite/Wsord.png')} style={styles.icon} resizeMode="contain" />
         </Animated.View>
       </View>
 
