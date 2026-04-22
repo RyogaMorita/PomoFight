@@ -12,6 +12,7 @@ import {
   requestNotificationPermission,
   scheduleBattleNotifications,
   cancelPomodorNotification,
+  notifyPomodoroComplete,
   setupNotificationChannel,
 } from '../../lib/notifications'
 import { getSettings } from '../../lib/settings'
@@ -45,6 +46,7 @@ export default function FightScreen({ room, goal, onFinish }) {
   const [showReport, setShowReport] = useState(false)
   const [pomodoros, setPomodoros] = useState(0)
   const [soundEnabled, setSoundEnabled] = useState(true)
+  const [opponentBreakLog, setOpponentBreakLog] = useState(null)
   const growAnim = useRef(new Animated.Value(1)).current
 
   const showFish     = useRef(Math.random() < 0.5).current
@@ -55,6 +57,7 @@ export default function FightScreen({ room, goal, onFinish }) {
   const facedownTimer = useRef(null)
   const faceupTimer  = useRef(null)
   const offlineTimer = useRef(null)
+  const fightChannel = useRef(null)
   const hasLost         = useRef(false)
   const showingLoseAlert = useRef(false)
   const phaseRef     = useRef('facedown')
@@ -77,7 +80,6 @@ export default function FightScreen({ room, goal, onFinish }) {
     setSoundEnabled(s.sound)
   }
 
-  // ── カウントが0になったら負け（setState外で検知）──────────
   useEffect(() => {
     if (facedownCount === 0 && phaseRef.current === 'facedown') {
       handleLose('伏せ失格')
@@ -111,11 +113,9 @@ export default function FightScreen({ room, goal, onFinish }) {
 
     if (!data) return
     if (data.length === 1) {
-      // 1v1: player_id をprofilesに含めて保存
       setOpponent({ ...data[0].profiles, player_id: data[0].player_id })
     } else {
-      // 複数人：残り人数モード
-      setActivePlayers(data.length + 1) // 自分含む
+      setActivePlayers(data.length + 1)
     }
   }
 
@@ -129,7 +129,6 @@ export default function FightScreen({ room, goal, onFinish }) {
 
     const appStateSub = AppState.addEventListener('change', nextState => {
       if (nextState === 'background' || nextState === 'inactive') {
-        // 伏せ中のスリープは正常 → leaveWarningを発動しない
         if (!isFaceDownRef.current) {
           startLeaveTimer()
         }
@@ -152,7 +151,6 @@ export default function FightScreen({ room, goal, onFinish }) {
         if (payload.new.player_id === session.user.id) return
         if (payload.new.status !== 'left') return
 
-        // 残り人数を再取得して判定
         const { data } = await supabase
           .from('room_players')
           .select('player_id, status')
@@ -162,21 +160,24 @@ export default function FightScreen({ room, goal, onFinish }) {
         const remaining = active.length
 
         if (remaining <= 1) {
-          // 自分だけ残った → 勝利
           setOpponentLeft(true)
           cancelPomodorNotification()
           setTimeout(() => onFinish('win'), 2000)
         } else {
-          // まだ他にいる → 残り人数更新
           setActivePlayers(remaining)
+        }
+      })
+      .on('broadcast', { event: 'break_log' }, ({ payload }) => {
+        if (payload.userId !== session.user.id) {
+          setOpponentBreakLog(payload)
         }
       })
       .subscribe()
 
+    fightChannel.current = channel
     return () => { accelSub.remove(); appStateSub.remove(); channel.unsubscribe() }
   }
 
-  // ── 開始前：伏せ猶予カウントダウン ───────────────────────
   function startFacedownTimer() {
     facedownTimer.current = setInterval(() => {
       setFacedownCount(prev => (prev > 0 ? prev - 1 : 0))
@@ -190,7 +191,6 @@ export default function FightScreen({ room, goal, onFinish }) {
     }
   }
 
-  // ── 対戦中：起き上がり猶予カウントダウン ─────────────────
   function startFaceupTimer() {
     Vibration.vibrate([0, 300, 200, 300])
     faceupTimer.current = setInterval(() => {
@@ -270,6 +270,20 @@ export default function FightScreen({ room, goal, onFinish }) {
     setPhase('log')
   }
 
+  async function broadcastBreakLog(log, focusScore) {
+    if (room.isTest || !fightChannel.current) return
+    await fightChannel.current.send({
+      type: 'broadcast',
+      event: 'break_log',
+      payload: {
+        userId: session.user.id,
+        username: profile?.username ?? '',
+        log,
+        focusScore,
+      },
+    })
+  }
+
   function cleanup() {
     stopFacedownTimer()
     stopFaceupTimer()
@@ -300,7 +314,6 @@ export default function FightScreen({ room, goal, onFinish }) {
     }
   }
 
-  // ── 伏せ状態の変化を監視 ─────────────────────────────────
   useEffect(() => {
     if (phaseRef.current === 'facedown') {
       if (isFaceDown) {
@@ -308,7 +321,7 @@ export default function FightScreen({ room, goal, onFinish }) {
         phaseRef.current = 'fighting'
         setPhase('fighting')
         startPomodoro()
-        Vibration.vibrate([0, 60, 40, 100]) // 伏せ確認バイブ（ピロン）
+        Vibration.vibrate([0, 60, 40, 100])
       }
     } else if (phaseRef.current === 'fighting') {
       if (!isFaceDown) {
@@ -316,7 +329,7 @@ export default function FightScreen({ room, goal, onFinish }) {
       } else {
         if (faceupTimer.current) {
           stopFaceupTimer()
-          Vibration.vibrate([0, 60, 40, 100]) // 伏せ復帰バイブ
+          Vibration.vibrate([0, 60, 40, 100])
         }
       }
     }
@@ -331,6 +344,7 @@ export default function FightScreen({ room, goal, onFinish }) {
           pomodoroTimer.current = null
           stopFaceupTimer()
           Vibration.cancel()
+          notifyPomodoroComplete(soundEnabled)
           growTree()
           startBreak()
           return 0
@@ -350,7 +364,7 @@ export default function FightScreen({ room, goal, onFinish }) {
   }
 
   async function handleLose(reason) {
-    if (hasLost.current) return   // ガード：絶対に1回だけ
+    if (hasLost.current) return
     hasLost.current = true
     cleanup()
     if (!room.isTest) {
@@ -368,7 +382,6 @@ export default function FightScreen({ room, goal, onFinish }) {
     return `${m}:${s}`
   }
 
-  // ── 開始前フェーズ ────────────────────────────────────────
   if (phase === 'facedown') {
     return (
       <View style={styles.container}>
@@ -390,30 +403,24 @@ export default function FightScreen({ room, goal, onFinish }) {
     )
   }
 
-  if (phase === 'break') {
-    const bm = Math.floor(breakLeft / 60)
-    const bs = breakLeft % 60
+  if (phase === 'break' || phase === 'log') {
     return (
-      <View style={styles.container}>
-        <Text style={styles.bigEmoji}>☕</Text>
-        <Text style={styles.title}>ポモドーロ完了！</Text>
-        <Text style={styles.sub}>休憩しましょう</Text>
-        <Text style={[styles.timer, styles.breakTimer]}>
-          {String(bm).padStart(2, '0')}:{String(bs).padStart(2, '0')}
-        </Text>
-        <Text style={styles.breakSub}>休憩終了後、自動でログ画面へ移動します</Text>
-        <TouchableOpacity style={styles.skipBreakBtn} onPress={skipBreak}>
-          <Text style={styles.skipBreakText}>スキップ → ログを記録</Text>
-        </TouchableOpacity>
-      </View>
+      <BreakLogScreen
+        breakLeft={breakLeft}
+        isBreak={phase === 'break'}
+        onSkip={skipBreak}
+        onSubmit={broadcastBreakLog}
+        opponentBreakLog={opponentBreakLog}
+        opponent={opponent}
+        room={room}
+        goal={goal}
+        onFinish={onFinish}
+        session={session}
+        soundEnabled={soundEnabled}
+      />
     )
   }
 
-  if (phase === 'log') {
-    return <LogInput room={room} goal={goal} onFinish={onFinish} session={session} />
-  }
-
-  // ── 対戦中フェーズ ────────────────────────────────────────
   const isFaceupWarning = faceupTimer.current !== null
 
   return (
@@ -567,13 +574,17 @@ const FOCUS_SCORES = [
   { score: 5, label: '🔥', desc: '完璧' },
 ]
 
-function LogInput({ room, goal, onFinish, session }) {
+function BreakLogScreen({ breakLeft, isBreak, onSkip, onSubmit, opponentBreakLog, opponent, room, goal, onFinish, session, soundEnabled }) {
   const [log, setLog] = useState('')
   const [focusScore, setFocusScore] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+
+  const bm = Math.floor(breakLeft / 60)
+  const bs = breakLeft % 60
 
   async function handleSubmit() {
-    if (!focusScore) return
+    if (!focusScore || submitted) return
     setLoading(true)
     if (!room.isTest) {
       await supabase.from('pomodoro_logs').insert({
@@ -585,55 +596,106 @@ function LogInput({ room, goal, onFinish, session }) {
       })
       await supabase.rpc('increment_pomodoro', { user_id: session.user.id })
     }
+    await onSubmit(log.trim() || goal, focusScore)
     setLoading(false)
-    onFinish('win')
+    setSubmitted(true)
+    if (!isBreak) onFinish('win')
   }
+
+  useEffect(() => {
+    if (!isBreak && submitted) onFinish('win')
+  }, [isBreak])
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <Text style={styles.bigEmoji}>🌳</Text>
-      <Text style={styles.title}>ポモドーロ完了！</Text>
-      <Text style={styles.sub}>25分間お疲れさまでした</Text>
-
-      <View style={styles.logBox}>
-        <Text style={styles.logLabel}>今回やったことを一言</Text>
-        <TextInput
-          style={styles.logInput}
-          placeholder={goal}
-          placeholderTextColor={colors.textLight}
-          value={log}
-          onChangeText={setLog}
-          maxLength={50}
-          autoFocus
-        />
-      </View>
-
-      <View style={styles.logBox}>
-        <Text style={styles.logLabel}>集中度は？</Text>
-        <View style={styles.scoreRow}>
-          {FOCUS_SCORES.map(({ score, label, desc }) => (
-            <TouchableOpacity
-              key={score}
-              style={[styles.scoreItem, focusScore === score && styles.scoreItemActive]}
-              onPress={() => setFocusScore(score)}
-            >
-              <Text style={styles.scoreEmoji}>{label}</Text>
-              <Text style={styles.scoreDesc}>{desc}</Text>
+      {isBreak && (
+        <View style={styles.breakHeader}>
+          <Text style={styles.breakHeaderEmoji}>☕</Text>
+          <Text style={[styles.timer, styles.breakTimer]}>
+            {String(bm).padStart(2, '0')}:{String(bs).padStart(2, '0')}
+          </Text>
+          {__DEV__ && (
+            <TouchableOpacity onPress={onSkip} style={styles.devSkip}>
+              <Text style={styles.devSkipText}>⚡ DEV: 休憩スキップ</Text>
             </TouchableOpacity>
-          ))}
+          )}
         </View>
-      </View>
+      )}
 
-      <TouchableOpacity
-        style={[styles.button, (!focusScore || loading) && styles.buttonDisabled]}
-        onPress={handleSubmit}
-        disabled={!focusScore || loading}
-      >
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>完了 🌳</Text>}
-      </TouchableOpacity>
+      {!isBreak && <Text style={styles.bigEmoji}>🌳</Text>}
+      <Text style={styles.title}>ポモドーロ完了！</Text>
+
+      {opponent && !opponentBreakLog && (
+        <View style={styles.opponentMiniCard}>
+          <Text style={styles.vsText}>VS</Text>
+          <View>
+            <Text style={styles.opponentNameSmall}>{opponent.username}</Text>
+            <Text style={styles.opponentRankSmall}>Rank {opponent.rank}</Text>
+          </View>
+        </View>
+      )}
+
+      {opponentBreakLog && (
+        <View style={styles.opponentLogBox}>
+          <Text style={styles.opponentLogLabel}>💬 {opponentBreakLog.username} のログ</Text>
+          <Text style={styles.opponentLogText}>{opponentBreakLog.log}</Text>
+          <Text style={styles.opponentLogScore}>
+            集中度: {FOCUS_SCORES.find(f => f.score === opponentBreakLog.focusScore)?.label ?? ''}
+          </Text>
+        </View>
+      )}
+
+      {submitted ? (
+        <View style={styles.submittedBox}>
+          <Text style={styles.submittedText}>✅ ログを送信しました</Text>
+          {isBreak && <Text style={styles.submittedSub}>休憩終了までお待ちください</Text>}
+        </View>
+      ) : (
+        <>
+          <View style={styles.logBox}>
+            <Text style={styles.logLabel}>今回やったことを一言</Text>
+            <TextInput
+              style={styles.logInput}
+              placeholder={goal}
+              placeholderTextColor={colors.textLight}
+              value={log}
+              onChangeText={setLog}
+              maxLength={50}
+              autoFocus={!isBreak}
+            />
+          </View>
+
+          <View style={styles.logBox}>
+            <Text style={styles.logLabel}>集中度は？</Text>
+            <View style={styles.scoreRow}>
+              {FOCUS_SCORES.map(({ score, label, desc }) => (
+                <TouchableOpacity
+                  key={score}
+                  style={[styles.scoreItem, focusScore === score && styles.scoreItemActive]}
+                  onPress={() => setFocusScore(score)}
+                >
+                  <Text style={styles.scoreEmoji}>{label}</Text>
+                  <Text style={styles.scoreDesc}>{desc}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.button, (!focusScore || loading) && styles.buttonDisabled]}
+            onPress={handleSubmit}
+            disabled={!focusScore || loading}
+          >
+            {loading
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.buttonText}>送信して完了 🌳</Text>
+            }
+          </TouchableOpacity>
+        </>
+      )}
     </KeyboardAvoidingView>
   )
 }
@@ -708,14 +770,29 @@ const styles = StyleSheet.create({
   goalLabel: { fontSize: 12, color: colors.textLight, marginBottom: 4 },
   goalText: { fontSize: 18, color: colors.text, fontWeight: '600' },
 
-  breakTimer: { color: colors.primary, marginVertical: 16 },
-  breakSub: { fontSize: 13, color: colors.textLight, marginBottom: 28, textAlign: 'center' },
-  skipBreakBtn: {
-    paddingVertical: 14, paddingHorizontal: 36,
-    borderRadius: radius.md, borderWidth: 1, borderColor: colors.border,
-    backgroundColor: colors.card,
+  breakHeader: { alignItems: 'center', marginBottom: 8 },
+  breakHeaderEmoji: { fontSize: 36, marginBottom: 4 },
+  breakTimer: { color: colors.primary, marginVertical: 4 },
+
+  opponentMiniCard: {
+    width: '100%', flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: colors.card, borderRadius: radius.md,
+    padding: 12, marginBottom: 12,
+    borderWidth: 1, borderColor: colors.border,
   },
-  skipBreakText: { color: colors.textSub, fontSize: 16 },
+
+  opponentLogBox: {
+    width: '100%', backgroundColor: colors.cardSub,
+    borderRadius: radius.md, padding: 14, marginBottom: 16,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  opponentLogLabel: { fontSize: 12, color: colors.textSub, marginBottom: 6, fontWeight: '600' },
+  opponentLogText:  { fontSize: 16, color: colors.text, fontWeight: '700', marginBottom: 4 },
+  opponentLogScore: { fontSize: 13, color: colors.primary },
+
+  submittedBox: { alignItems: 'center', paddingVertical: 24 },
+  submittedText: { fontSize: 18, fontWeight: 'bold', color: colors.primary },
+  submittedSub:  { fontSize: 13, color: colors.textSub, marginTop: 8 },
 
   loseButton: { paddingVertical: 12, paddingHorizontal: 32 },
   loseText: { color: colors.textLight, fontSize: 14 },
