@@ -22,6 +22,8 @@ git clone <repo-url>
 cd PomoFight
 npm install
 
+# Supabase SQL Editor で supabase/schema.sql を実行
+
 # .env.example を参考に .env を作成
 cp .env.example .env
 # .env を編集して Supabase の URL と Anon Key を設定
@@ -39,6 +41,22 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 Supabase の値は [Supabase ダッシュボード](https://supabase.com) → Project Settings → API から取得。
 
 > ⚠️ `.env` を変更した後は `r` リロードではなく Metro を再起動（`Ctrl+C` → `npm start`）
+
+### Supabase スキーマ
+
+新しい Supabase プロジェクトでは、先に [`supabase/schema.sql`](./supabase/schema.sql) を SQL Editor で実行してください。
+既存プロジェクトに今回のバッジ設定だけ追加する場合は、[`supabase/migrations/20260510_add_status_badge.sql`](./supabase/migrations/20260510_add_status_badge.sql) を実行してください。
+
+含まれるもの:
+
+- `profiles`, `rooms`, `room_players`, `pomodoro_logs`, `friends`, `reports`
+- RLS ポリシー
+- `increment_pomodoro`
+- `record_battle_result`
+
+### 起動時の設定チェック
+
+`.env` が未設定の場合、アプリは Supabase に接続せず、必要な環境変数名を画面に表示します。
 
 ## 主な機能
 

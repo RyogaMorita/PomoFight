@@ -1,10 +1,16 @@
 import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView, Alert } from 'react-native'
+import Constants from 'expo-constants'
 import Icon from '../../components/Icon'
 import { getSettings, saveSetting } from '../../lib/settings'
+import { cancelPomodorNotification } from '../../lib/notifications'
 import { colors, radius, shadow } from '../../lib/theme'
 
 export default function SettingsScreen() {
+  const appVersion = Constants.expoConfig?.version ?? '1.0.0'
+  const buildNumber = Constants.expoConfig?.ios?.buildNumber
+    ?? Constants.expoConfig?.android?.versionCode
+    ?? 'dev'
   const [settings, setSettings] = useState({
     notifications: true,
     sound: true,
@@ -21,6 +27,9 @@ export default function SettingsScreen() {
     const next = { ...settings, [key]: !settings[key] }
     setSettings(next)
     await saveSetting(key, next[key])
+    if (key === 'notifications' && !next[key]) {
+      await cancelPomodorNotification()
+    }
   }
 
   return (
@@ -67,7 +76,7 @@ export default function SettingsScreen() {
       <View style={styles.card}>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>バージョン</Text>
-          <Text style={styles.infoValue}>1.0.0 (build 2)</Text>
+          <Text style={styles.infoValue}>{appVersion} (build {buildNumber})</Text>
         </View>
         <View style={styles.divider} />
         <View style={styles.infoRow}>

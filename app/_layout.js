@@ -1,10 +1,11 @@
 import { Slot, useRouter, useSegments } from 'expo-router'
 import { useEffect } from 'react'
-import { View, ActivityIndicator } from 'react-native'
+import { View, ActivityIndicator, Text, StyleSheet } from 'react-native'
 import { AuthProvider, useAuth } from '../context/AuthContext'
+import { colors } from '../lib/theme'
 
 function RouteGuard() {
-  const { session, profile, loading } = useAuth()
+  const { session, profile, loading, configError } = useAuth()
   const segments = useSegments()
   const router = useRouter()
 
@@ -31,6 +32,15 @@ function RouteGuard() {
     )
   }
 
+  if (configError) {
+    return (
+      <View style={styles.configError}>
+        <Text style={styles.configTitle}>設定が必要です</Text>
+        <Text style={styles.configText}>{configError}</Text>
+      </View>
+    )
+  }
+
   return <Slot />
 }
 
@@ -41,3 +51,25 @@ export default function RootLayout() {
     </AuthProvider>
   )
 }
+
+const styles = StyleSheet.create({
+  configError: {
+    flex: 1,
+    backgroundColor: colors.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  configTitle: {
+    color: colors.text,
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 12,
+  },
+  configText: {
+    color: colors.textSub,
+    fontSize: 14,
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+})

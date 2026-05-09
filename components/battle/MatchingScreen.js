@@ -96,11 +96,23 @@ export default function MatchingScreen({ goal, onMatched, onCancel }) {
     )
 
     if (waitingRoom) {
-      await supabase.from('room_players').insert({
+      const { error: insertError } = await supabase.from('room_players').insert({
         room_id: waitingRoom.id,
         player_id: session.user.id,
       })
-      await supabase.from('rooms').update({ status: 'active' }).eq('id', waitingRoom.id)
+      if (insertError) return
+      const { error: updateError } = await supabase
+        .from('rooms')
+        .update({ status: 'active' })
+        .eq('id', waitingRoom.id)
+        .eq('status', 'waiting')
+      if (updateError) {
+        await supabase.from('room_players')
+          .delete()
+          .eq('room_id', waitingRoom.id)
+          .eq('player_id', session.user.id)
+        return
+      }
       roomRef.current = waitingRoom.id
       onMatched({ id: waitingRoom.id, opponentGoal: waitingRoom.theme })
     } else {
@@ -112,10 +124,14 @@ export default function MatchingScreen({ goal, onMatched, onCancel }) {
 
       if (newRoom) {
         roomRef.current = newRoom.id
-        await supabase.from('room_players').insert({
+        const { error: playerError } = await supabase.from('room_players').insert({
           room_id: newRoom.id,
           player_id: session.user.id,
         })
+        if (playerError) {
+          await supabase.from('rooms').delete().eq('id', newRoom.id)
+          return
+        }
 
         const channel = supabase
           .channel(`room-${newRoom.id}`)
@@ -144,7 +160,7 @@ export default function MatchingScreen({ goal, onMatched, onCancel }) {
   }
 
   function getSearchMessage() {
-    if (waitSeconds < 15) return '同じレベルの相手を探しています...'
+    if (waitSeconds < 15) return '対戦相手を探しています...'
     if (waitSeconds < 30) return '少し範囲を広げています...'
     return 'さらに広い範囲で探しています...'
   }

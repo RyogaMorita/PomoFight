@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   View, Text, StyleSheet, AppState, TouchableOpacity,
   TextInput, KeyboardAvoidingView, Platform, ActivityIndicator,
-  Alert, Modal, Animated, Vibration
+  Alert, Modal, Animated, Vibration, Image
 } from 'react-native'
 import { Accelerometer } from 'expo-sensors'
 import NetInfo from '@react-native-community/netinfo'
@@ -13,6 +13,7 @@ import {
   scheduleBattleNotifications,
   cancelPomodorNotification,
   notifyPomodoroComplete,
+  scheduleBreakCompleteNotification,
   setupNotificationChannel,
 } from '../../lib/notifications'
 import { getSettings } from '../../lib/settings'
@@ -28,6 +29,21 @@ const OFFLINE_GRACE_SECONDS = 10
 
 const BREAK_SECONDS = 5 * 60
 
+const PROFILE_ICONS = {
+  bear: require('../../assets/profile_icon/bear_icon.png'),
+  cat:  require('../../assets/profile_icon/cat_icon.png'),
+  dog:  require('../../assets/profile_icon/dog_icon.png'),
+}
+
+const STATUS_BADGES = {
+  seed:  { emoji: '🌱', label: '集中の種' },
+  flame: { emoji: '🔥', label: '集中燃焼' },
+  sword: { emoji: '⚔️', label: '初陣' },
+  gold:  { emoji: '🏅', label: '勝ち星' },
+  tree:  { emoji: '🌳', label: '集中の木' },
+  crown: { emoji: '👑', label: '王者' },
+}
+
 export default function FightScreen({ room, goal, onFinish }) {
   const { session, profile } = useAuth()
   const POMODORO_SECONDS = 25 * 60
@@ -42,10 +58,12 @@ export default function FightScreen({ room, goal, onFinish }) {
   const [facedownCount, setFacedownCount] = useState(FACEDOWN_LIMIT)
   const [faceupCount, setFaceupCount] = useState(FACEUP_GRACE)
   const [opponent, setOpponent] = useState(null)
+  const [opponentStatus, setOpponentStatus] = useState(null)
   const [activePlayers, setActivePlayers] = useState(null)
   const [showReport, setShowReport] = useState(false)
   const [pomodoros, setPomodoros] = useState(0)
   const [soundEnabled, setSoundEnabled] = useState(true)
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true)
   const [opponentBreakLog, setOpponentBreakLog] = useState(null)
   const growAnim = useRef(new Animated.Value(1)).current
 
@@ -58,6 +76,9 @@ export default function FightScreen({ room, goal, onFinish }) {
   const faceupTimer  = useRef(null)
   const offlineTimer = useRef(null)
   const fightChannel = useRef(null)
+  const accelSub = useRef(null)
+  const appStateSub = useRef(null)
+  const netInfoUnsub = useRef(null)
   const hasLost         = useRef(false)
   const showingLoseAlert = useRef(false)
   const phaseRef     = useRef('facedown')
@@ -66,7 +87,6 @@ export default function FightScreen({ room, goal, onFinish }) {
 
   useEffect(() => {
     setupNotificationChannel()
-    requestNotificationPermission()
     loadSettingsAndInit()
     if (!room.isTest) fetchOpponent()
     setupListeners()
@@ -78,6 +98,10 @@ export default function FightScreen({ room, goal, onFinish }) {
   async function loadSettingsAndInit() {
     const s = await getSettings()
     setSoundEnabled(s.sound)
+    setNotificationsEnabled(s.notifications)
+    if (s.notifications) {
+      await requestNotificationPermission()
+    }
   }
 
   // ── カウントが0になったら負け（setState外で検知）──────────
@@ -108,7 +132,7 @@ export default function FightScreen({ room, goal, onFinish }) {
   async function fetchOpponent() {
     const { data } = await supabase
       .from('room_players')
-      .select('player_id, profiles(username, rank, current_goal)')
+      .select('player_id, profiles(username, rank, wins, losses, current_goal, profile_icon, status_badge)')
       .eq('room_id', room.id)
       .neq('player_id', session.user.id)
 
@@ -124,13 +148,13 @@ export default function FightScreen({ room, goal, onFinish }) {
 
   function setupListeners() {
     Accelerometer.setUpdateInterval(500)
-    const accelSub = Accelerometer.addListener(({ z }) => {
+    accelSub.current = Accelerometer.addListener(({ z }) => {
       const fd = z > FACE_DOWN_THRESHOLD
       isFaceDownRef.current = fd
       setIsFaceDown(fd)
     })
 
-    const appStateSub = AppState.addEventListener('change', nextState => {
+    appStateSub.current = AppState.addEventListener('change', nextState => {
       if (nextState === 'background' || nextState === 'inactive') {
         // 伏せ中のスリープは正常 → leaveWarningを発動しない
         if (!isFaceDownRef.current) {
@@ -143,7 +167,7 @@ export default function FightScreen({ room, goal, onFinish }) {
     })
 
     if (room.isTest) {
-      return () => { accelSub.remove(); appStateSub.remove() }
+      return
     }
 
     const channel = supabase
@@ -176,10 +200,14 @@ export default function FightScreen({ room, goal, onFinish }) {
           setOpponentBreakLog(payload)
         }
       })
+      .on('broadcast', { event: 'battle_status' }, ({ payload }) => {
+        if (payload.userId !== session.user.id) {
+          setOpponentStatus(payload)
+        }
+      })
       .subscribe()
 
     fightChannel.current = channel
-    return () => { accelSub.remove(); appStateSub.remove(); channel.unsubscribe() }
   }
 
   // ── 開始前：伏せ猶予カウントダウン ───────────────────────
@@ -219,7 +247,7 @@ export default function FightScreen({ room, goal, onFinish }) {
 
   function setupNetworkListener() {
     if (room.isTest) return
-    const unsub = NetInfo.addEventListener(state => {
+    netInfoUnsub.current = NetInfo.addEventListener(state => {
       const connected = state.isConnected && state.isInternetReachable !== false
       setIsOffline(!connected)
       if (!connected) {
@@ -228,7 +256,6 @@ export default function FightScreen({ room, goal, onFinish }) {
         clearOfflineTimer()
       }
     })
-    return unsub
   }
 
   function startOfflineTimer() {
@@ -256,6 +283,10 @@ export default function FightScreen({ room, goal, onFinish }) {
   function startBreak() {
     phaseRef.current = 'break'
     setPhase('break')
+    scheduleBreakCompleteNotification(BREAK_SECONDS, {
+      enabled: notificationsEnabled,
+      sound: soundEnabled,
+    })
     breakTimer.current = setInterval(() => {
       setBreakLeft(prev => {
         if (prev <= 1) {
@@ -272,6 +303,7 @@ export default function FightScreen({ room, goal, onFinish }) {
 
   function skipBreak() {
     stopBreak()
+    cancelPomodorNotification()
     phaseRef.current = 'log'
     setPhase('log')
   }
@@ -290,6 +322,30 @@ export default function FightScreen({ room, goal, onFinish }) {
     })
   }
 
+  async function broadcastBattleStatus(extra = {}) {
+    if (room.isTest || !fightChannel.current) return
+    await fightChannel.current.send({
+      type: 'broadcast',
+      event: 'battle_status',
+      payload: {
+        userId: session.user.id,
+        username: profile?.username ?? 'プレイヤー',
+        rank: profile?.rank ?? 0,
+        wins: profile?.wins ?? 0,
+        losses: profile?.losses ?? 0,
+        profileIcon: profile?.profile_icon,
+        statusBadge: profile?.status_badge,
+        phase: phaseRef.current,
+        isFaceDown: isFaceDownRef.current,
+        timeLeft,
+        breakLeft,
+        pomodoros,
+        at: Date.now(),
+        ...extra,
+      },
+    })
+  }
+
   function cleanup() {
     stopFacedownTimer()
     stopFaceupTimer()
@@ -300,7 +356,14 @@ export default function FightScreen({ room, goal, onFinish }) {
       clearInterval(pomodoroTimer.current)
       pomodoroTimer.current = null
     }
-    Accelerometer.removeAllListeners()
+    accelSub.current?.remove()
+    accelSub.current = null
+    appStateSub.current?.remove()
+    appStateSub.current = null
+    netInfoUnsub.current?.()
+    netInfoUnsub.current = null
+    fightChannel.current?.unsubscribe()
+    fightChannel.current = null
     cancelPomodorNotification()
     Vibration.cancel()
   }
@@ -342,8 +405,15 @@ export default function FightScreen({ room, goal, onFinish }) {
     }
   }, [isFaceDown])
 
+  useEffect(() => {
+    broadcastBattleStatus()
+  }, [phase, isFaceDown, timeLeft, breakLeft, pomodoros])
+
   function startPomodoro() {
-    scheduleBattleNotifications(POMODORO_SECONDS)
+    scheduleBattleNotifications(POMODORO_SECONDS, {
+      enabled: notificationsEnabled,
+      sound: soundEnabled,
+    })
     pomodoroTimer.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
@@ -351,7 +421,10 @@ export default function FightScreen({ room, goal, onFinish }) {
           pomodoroTimer.current = null
           stopFaceupTimer()
           Vibration.cancel()
-          notifyPomodoroComplete()
+          notifyPomodoroComplete({
+            enabled: notificationsEnabled,
+            sound: soundEnabled,
+          })
           growTree()
           startBreak()
           return 0
@@ -393,6 +466,20 @@ export default function FightScreen({ room, goal, onFinish }) {
   if (phase === 'facedown') {
     return (
       <View style={styles.container}>
+        <BattleStatusBanner
+          me={profile}
+          opponent={opponent}
+          opponentStatus={opponentStatus}
+          myStatus={{
+            phase,
+            isFaceDown,
+            timeLeft,
+            breakLeft,
+            pomodoros,
+          }}
+          activePlayers={activePlayers}
+          onReport={() => setShowReport(true)}
+        />
         <Text style={styles.bigEmoji}>📱</Text>
         <Text style={styles.title}>スマホを伏せてください</Text>
         <Text style={styles.sub}>伏せないと失格になります</Text>
@@ -419,11 +506,20 @@ export default function FightScreen({ room, goal, onFinish }) {
         onSkip={skipBreak}
         onSubmit={broadcastBreakLog}
         opponentBreakLog={opponentBreakLog}
+        opponentStatus={opponentStatus}
         opponent={opponent}
         room={room}
         goal={goal}
         onFinish={onFinish}
         session={session}
+        profile={profile}
+        myStatus={{
+          phase,
+          isFaceDown,
+          timeLeft,
+          breakLeft,
+          pomodoros,
+        }}
       />
     )
   }
@@ -461,26 +557,20 @@ export default function FightScreen({ room, goal, onFinish }) {
         </View>
       )}
 
-      {activePlayers !== null && (
-        <View style={styles.activePlayersBar}>
-          <Text style={styles.activePlayersText}>👥 残り {activePlayers} 人</Text>
-        </View>
-      )}
-
-      {opponent && (
-        <View style={styles.opponentCard}>
-          <View style={styles.opponentLeft}>
-            <Text style={styles.vsText}>VS</Text>
-            <View>
-              <Text style={styles.opponentNameSmall}>{opponent.username}</Text>
-              <Text style={styles.opponentRankSmall}>Rank {opponent.rank}</Text>
-            </View>
-          </View>
-          <TouchableOpacity onPress={() => setShowReport(true)}>
-            <Text style={styles.reportBtn}>🚨</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      <BattleStatusBanner
+        me={profile}
+        opponent={opponent}
+        opponentStatus={opponentStatus}
+        myStatus={{
+          phase,
+          isFaceDown,
+          timeLeft,
+          breakLeft,
+          pomodoros,
+        }}
+        activePlayers={activePlayers}
+        onReport={() => setShowReport(true)}
+      />
 
       <Animated.View style={[styles.treeWrap, { transform: [{ scale: growAnim }] }]}>
         {showFish
@@ -574,6 +664,86 @@ function ReportModal({ visible, onClose, roomId, reportedId, reporterId }) {
   )
 }
 
+function statusLabel(status) {
+  if (!status) return '準備中'
+  if (status.phase === 'facedown') return status.isFaceDown ? '伏せ確認OK' : '伏せ待ち'
+  if (status.phase === 'fighting') return status.isFaceDown ? '集中中' : '伏せ解除中'
+  if (status.phase === 'break') return '休憩中'
+  if (status.phase === 'log' || status.phase === 'log_done') return 'メモ中'
+  return '対戦中'
+}
+
+function compactTime(seconds) {
+  if (typeof seconds !== 'number') return '--:--'
+  const m = Math.floor(seconds / 60).toString().padStart(2, '0')
+  const s = (seconds % 60).toString().padStart(2, '0')
+  return `${m}:${s}`
+}
+
+function PlayerBannerCard({ player, status, side = 'left', accent = colors.primary, isMe = false }) {
+  const icon = PROFILE_ICONS[player?.profile_icon || player?.profileIcon] || PROFILE_ICONS.bear
+  const badge = STATUS_BADGES[player?.status_badge || player?.statusBadge] || STATUS_BADGES.seed
+  const wins = player?.wins ?? 0
+  const losses = player?.losses ?? 0
+  const rank = player?.rank ?? 0
+  const time = status?.phase === 'break' ? status?.breakLeft : status?.timeLeft
+
+  return (
+    <View style={[styles.playerBannerCard, side === 'right' && styles.playerBannerCardRight, { borderColor: accent }]}>
+      {side === 'left' && <Image source={icon} style={styles.bannerAvatar} resizeMode="contain" />}
+      <View style={[styles.bannerInfo, side === 'right' && styles.bannerInfoRight]}>
+        <Text style={styles.bannerName} numberOfLines={1}>{isMe ? 'あなた' : (player?.username ?? '相手待ち')}</Text>
+        <Text style={styles.bannerMeta}>レート: {rank}</Text>
+        <Text style={styles.bannerMeta}>{wins}勝{losses}敗</Text>
+        <View style={styles.bannerBadge}>
+          <Text style={styles.bannerBadgeText}>{badge.emoji} {badge.label}</Text>
+        </View>
+        <View style={[styles.statusPill, { backgroundColor: accent }]}>
+          <Text style={styles.statusPillText}>{statusLabel(status)} {compactTime(time)}</Text>
+        </View>
+      </View>
+      {side === 'right' && <Image source={icon} style={styles.bannerAvatar} resizeMode="contain" />}
+    </View>
+  )
+}
+
+function BattleStatusBanner({ me, opponent, opponentStatus, myStatus, activePlayers, onReport }) {
+  const mergedOpponent = opponentStatus
+    ? {
+        ...opponent,
+        username: opponentStatus.username ?? opponent?.username,
+        rank: opponentStatus.rank ?? opponent?.rank,
+        wins: opponentStatus.wins ?? opponent?.wins,
+        losses: opponentStatus.losses ?? opponent?.losses,
+        profileIcon: opponentStatus.profileIcon,
+        statusBadge: opponentStatus.statusBadge,
+      }
+    : opponent
+
+  return (
+    <View style={styles.battleBanner}>
+      <PlayerBannerCard player={me} status={myStatus} isMe accent="#ff5ca8" />
+      <Text style={styles.bannerVs}>VS</Text>
+      <PlayerBannerCard
+        player={mergedOpponent}
+        status={opponentStatus}
+        side="right"
+        accent="#32d74b"
+      />
+      {activePlayers !== null && (
+        <View style={styles.bannerCount}>
+          <Text style={styles.bannerCountText}>残り {activePlayers}人</Text>
+        </View>
+      )}
+      {opponent && onReport && (
+        <TouchableOpacity style={styles.bannerReport} onPress={onReport}>
+          <Text style={styles.bannerReportText}>通報</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  )
+}
+
 const FOCUS_SCORES = [
   { score: 1, label: '😵', desc: '全然ダメ' },
   { score: 2, label: '😕', desc: 'いまいち' },
@@ -582,11 +752,12 @@ const FOCUS_SCORES = [
   { score: 5, label: '🔥', desc: '完璧' },
 ]
 
-function BreakLogScreen({ breakLeft, isBreak, onSkip, onSubmit, opponentBreakLog, opponent, room, goal, onFinish, session }) {
+function BreakLogScreen({ breakLeft, isBreak, onSkip, onSubmit, opponentBreakLog, opponentStatus, opponent, room, goal, onFinish, session, profile, myStatus }) {
   const [log, setLog] = useState('')
   const [focusScore, setFocusScore] = useState(null)
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [submittedLog, setSubmittedLog] = useState(null)
 
   const bm = Math.floor(breakLeft / 60)
   const bs = breakLeft % 60
@@ -605,6 +776,7 @@ function BreakLogScreen({ breakLeft, isBreak, onSkip, onSubmit, opponentBreakLog
       await supabase.rpc('increment_pomodoro', { user_id: session.user.id })
     }
     await onSubmit(log.trim() || goal, focusScore)
+    setSubmittedLog({ log: log.trim() || goal, focusScore })
     setLoading(false)
     setSubmitted(true)
     if (!isBreak) onFinish('win')
@@ -623,6 +795,12 @@ function BreakLogScreen({ breakLeft, isBreak, onSkip, onSubmit, opponentBreakLog
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      <BattleStatusBanner
+        me={profile}
+        opponent={opponent}
+        opponentStatus={opponentBreakLog ? { ...opponentStatus, phase: 'log_done' } : opponentStatus}
+        myStatus={myStatus}
+      />
       {/* 休憩カウントダウン */}
       {isBreak && (
         <View style={styles.breakHeader}>
@@ -630,6 +808,9 @@ function BreakLogScreen({ breakLeft, isBreak, onSkip, onSubmit, opponentBreakLog
           <Text style={[styles.timer, styles.breakTimer]}>
             {String(bm).padStart(2, '0')}:{String(bs).padStart(2, '0')}
           </Text>
+          <TouchableOpacity style={styles.skipBreakBtn} onPress={onSkip}>
+            <Text style={styles.skipBreakText}>休憩をスキップ</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -661,12 +842,21 @@ function BreakLogScreen({ breakLeft, isBreak, onSkip, onSubmit, opponentBreakLog
       {submitted ? (
         <View style={styles.submittedBox}>
           <Text style={styles.submittedText}>✅ ログを送信しました</Text>
+          {submittedLog && (
+            <View style={styles.myLogBox}>
+              <Text style={styles.myLogLabel}>あなたの共有メモ</Text>
+              <Text style={styles.myLogText}>{submittedLog.log}</Text>
+              <Text style={styles.myLogScore}>
+                集中度: {FOCUS_SCORES.find(f => f.score === submittedLog.focusScore)?.label ?? ''}
+              </Text>
+            </View>
+          )}
           {isBreak && <Text style={styles.submittedSub}>休憩終了までお待ちください</Text>}
         </View>
       ) : (
         <>
           <View style={styles.logBox}>
-            <Text style={styles.logLabel}>今回やったことを一言</Text>
+            <Text style={styles.logLabel}>今回やったことを一言（相手にも共有）</Text>
             <TextInput
               style={styles.logInput}
               placeholder={goal}
@@ -738,6 +928,124 @@ const styles = StyleSheet.create({
   opponentName: { fontSize: 18, fontWeight: 'bold', color: colors.text },
   opponentRank: { fontSize: 13, color: colors.gold, marginTop: 2 },
 
+  battleBanner: {
+    position: 'absolute',
+    top: 42,
+    left: 10,
+    right: 10,
+    zIndex: 120,
+    alignItems: 'center',
+    pointerEvents: 'box-none',
+  },
+  playerBannerCard: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: '48%',
+    minHeight: 108,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ff6aa9',
+    borderWidth: 3,
+    borderBottomWidth: 6,
+    borderRadius: radius.md,
+    padding: 8,
+    ...shadow,
+  },
+  playerBannerCardRight: {
+    left: undefined,
+    right: 0,
+    backgroundColor: '#4de34f',
+  },
+  bannerAvatar: {
+    width: 54,
+    height: 54,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+  },
+  bannerInfo: {
+    flex: 1,
+    marginLeft: 8,
+  },
+  bannerInfoRight: {
+    marginLeft: 0,
+    marginRight: 8,
+    alignItems: 'flex-end',
+  },
+  bannerName: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  bannerMeta: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: 1,
+  },
+  bannerBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.24)',
+    borderRadius: radius.full,
+    paddingVertical: 2,
+    paddingHorizontal: 7,
+    marginTop: 4,
+  },
+  bannerBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  statusPill: {
+    borderRadius: radius.full,
+    paddingVertical: 2,
+    paddingHorizontal: 7,
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  statusPillText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  bannerVs: {
+    marginTop: 84,
+    color: '#fff',
+    fontSize: 32,
+    fontWeight: '900',
+    textShadowColor: 'rgba(0,0,0,0.25)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 3,
+  },
+  bannerCount: {
+    position: 'absolute',
+    top: 118,
+    right: 0,
+    backgroundColor: colors.accent,
+    borderRadius: radius.full,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  bannerCountText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  bannerReport: {
+    position: 'absolute',
+    top: 118,
+    left: 0,
+    backgroundColor: colors.danger,
+    borderRadius: radius.full,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  bannerReportText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+
   opponentCard: {
     position: 'absolute', top: 48, left: 16, right: 16,
     backgroundColor: colors.card, borderRadius: radius.md,
@@ -764,12 +1072,12 @@ const styles = StyleSheet.create({
   bannerText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
 
   warningBanner: {
-    position: 'absolute', top: 52, left: 16, right: 16, zIndex: 100,
+    position: 'absolute', top: 194, left: 16, right: 16, zIndex: 130,
     backgroundColor: colors.danger, borderRadius: radius.md, padding: 12, alignItems: 'center',
   },
   warningText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
 
-  treeWrap: { width: '100%', marginTop: 56, marginBottom: 16 },
+  treeWrap: { width: '100%', marginTop: 154, marginBottom: 16 },
   statusText: { fontSize: 13, color: colors.textSub, marginBottom: 8 },
   timer: { fontSize: 56, fontWeight: 'bold', color: colors.text, fontVariant: ['tabular-nums'] },
 
@@ -805,6 +1113,19 @@ const styles = StyleSheet.create({
   opponentLogLabel: { fontSize: 12, color: colors.textSub, marginBottom: 6, fontWeight: '600' },
   opponentLogText:  { fontSize: 16, color: colors.text, fontWeight: '700', marginBottom: 4 },
   opponentLogScore: { fontSize: 13, color: colors.primary },
+
+  myLogBox: {
+    width: '100%',
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.md,
+    padding: 14,
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  myLogLabel: { fontSize: 12, color: colors.textSub, marginBottom: 6, fontWeight: '700' },
+  myLogText: { fontSize: 16, color: colors.text, fontWeight: '700', marginBottom: 4 },
+  myLogScore: { fontSize: 13, color: colors.primary, fontWeight: '700' },
 
   submittedBox: { alignItems: 'center', paddingVertical: 24 },
   submittedText: { fontSize: 18, fontWeight: 'bold', color: colors.primary },

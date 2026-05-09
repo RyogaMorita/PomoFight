@@ -78,6 +78,7 @@ export default function FinishScreen({ result, room, onBack }) {
   // ボーナスバナーアニメーション
   const bannerScale  = useRef(new Animated.Value(0)).current
   const bannerOp     = useRef(new Animated.Value(0)).current
+  const hasRecorded  = useRef(false)
 
   const message = isWin
     ? WIN_MESSAGES[Math.floor(Math.random() * WIN_MESSAGES.length)]
@@ -86,6 +87,9 @@ export default function FinishScreen({ result, room, onBack }) {
   useEffect(() => { recordResult() }, [])
 
   async function recordResult() {
+    if (hasRecorded.current) return
+    hasRecorded.current = true
+
     let change = 0
     let info   = null
 

@@ -61,10 +61,12 @@ export default function RoomWaitingScreen({ room, onStart, onCancel }) {
     setStarting(true)
     channelRef.current?.unsubscribe()
     channelRef.current = null
-    if (players.length >= 2) {
-      // 複数人: 全員に通知するためDB更新（非ホストはRealtimeで受信）
-      await supabase.from('rooms').update({ status: 'active' }).eq('id', room.id)
+    if (players.length < 2) {
+      setStarting(false)
+      return
     }
+    // 複数人: 全員に通知するためDB更新（非ホストはRealtimeで受信）
+    await supabase.from('rooms').update({ status: 'active' }).eq('id', room.id)
     onStart()
   }
 
@@ -173,13 +175,15 @@ export default function RoomWaitingScreen({ room, onStart, onCancel }) {
           <>
             {!isFull && (
               <Text style={styles.waitingHint}>
-                あと{maxPlayers - players.length}人参加すると開始できます（今すぐ開始も可）
+                {players.length < 2
+                  ? 'あと1人参加すると開始できます'
+                  : `あと${maxPlayers - players.length}人まで参加できます（今すぐ開始も可）`}
               </Text>
             )}
             <TouchableOpacity
-              style={[styles.startBtn, starting && styles.startBtnDisabled]}
+              style={[styles.startBtn, (starting || players.length < 2) && styles.startBtnDisabled]}
               onPress={startBattle}
-              disabled={starting || players.length < 1}
+              disabled={starting || players.length < 2}
             >
               {starting
                 ? <ActivityIndicator color="#fff" />

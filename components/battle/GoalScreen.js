@@ -4,12 +4,14 @@ import {
   StyleSheet, KeyboardAvoidingView, Platform
 } from 'react-native'
 import Icon from '../Icon'
+import { useAuth } from '../../context/AuthContext'
 import { colors, radius, shadow } from '../../lib/theme'
 
 const PRESETS = ['勉強', '読書', '仕事', '運動', '資格勉強', 'プログラミング']
 const TEST_ROOM = { id: 'test-room', opponentGoal: '勉強', isTest: true }
 
 export default function GoalScreen({ onStart, onTestStart, onCreateRoom, onJoinRoom, onFreeMatch }) {
+  const { onlineCount } = useAuth()
   const [goal, setGoal] = useState('')
 
   return (
@@ -22,6 +24,10 @@ export default function GoalScreen({ onStart, onTestStart, onCreateRoom, onJoinR
         <Text style={styles.title}>バトル開始</Text>
       </View>
       <Text style={styles.subtitle}>今回の目的を入力しよう</Text>
+      <View style={styles.onlineBadge}>
+        <View style={styles.onlineDot} />
+        <Text style={styles.onlineText}>オンライン {onlineCount}人</Text>
+      </View>
 
       <TextInput
         style={styles.input}
@@ -109,6 +115,18 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
   title:    { fontSize: 28, fontWeight: 'bold', color: colors.text },
   subtitle: { fontSize: 15, color: colors.textSub, marginBottom: 32 },
+  onlineBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: colors.card, borderRadius: radius.full,
+    paddingVertical: 7, paddingHorizontal: 14,
+    borderWidth: 1, borderColor: colors.border,
+    marginBottom: 18, ...shadow,
+  },
+  onlineDot: {
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: colors.primary,
+  },
+  onlineText: { fontSize: 13, color: colors.text, fontWeight: '700' },
 
   input: {
     width: '100%', backgroundColor: colors.card, borderRadius: radius.md,

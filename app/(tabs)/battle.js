@@ -61,6 +61,7 @@ export default function BattleTab({ onHideTabBar, initialPhase = 'goal' }) {
     <FreeMatchScreen
       goal={goal}
       onJoinRoom={(r) => { setRoom(r); setPhase('room_waiting') }}
+      onJoinCode={() => setPhase('join_room')}
       onCancel={goBack}
     />
   )

@@ -10,6 +10,20 @@ function generateCode() {
   return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 }
 
+async function generateUniqueCode() {
+  for (let i = 0; i < 6; i++) {
+    const code = generateCode()
+    const { data } = await supabase
+      .from('rooms')
+      .select('id')
+      .eq('invite_code', code)
+      .eq('status', 'waiting')
+      .maybeSingle()
+    if (!data) return code
+  }
+  throw new Error('招待コードの生成に失敗しました')
+}
+
 export default function CreateRoomScreen({ goal, onMatched, onCancel }) {
   const { session } = useAuth()
   const [code, setCode] = useState('')
@@ -30,23 +44,35 @@ export default function CreateRoomScreen({ goal, onMatched, onCancel }) {
   }, [])
 
   async function createRoom() {
-    const inviteCode = generateCode()
-    const { data: room } = await supabase
+    let inviteCode
+    try {
+      inviteCode = await generateUniqueCode()
+    } catch {
+      Alert.alert('エラー', '招待コードの生成に失敗しました。もう一度お試しください')
+      return
+    }
+
+    const { data: room, error } = await supabase
       .from('rooms')
       .insert({ host_id: session.user.id, theme: goal, status: 'waiting', invite_code: inviteCode })
       .select()
       .single()
 
-    if (!room) {
-      Alert.alert('エラー', '部屋の作成に失敗しました')
+    if (!room || error) {
+      Alert.alert('エラー', '部屋の作成に失敗しました。通信状態を確認してください')
       return
     }
     roomRef.current = room.id
     setCode(inviteCode)
 
-    await supabase.from('room_players').insert({
+    const { error: playerError } = await supabase.from('room_players').insert({
       room_id: room.id, player_id: session.user.id,
     })
+    if (playerError) {
+      await supabase.from('rooms').delete().eq('id', room.id)
+      Alert.alert('エラー', '部屋への参加に失敗しました')
+      return
+    }
 
     const channel = supabase
       .channel(`room-${room.id}`)

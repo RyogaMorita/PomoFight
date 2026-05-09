@@ -19,14 +19,14 @@ export default function JoinRoomScreen({ goal, onMatched, onCancel }) {
     setLoading(true)
     setError('')
 
-    const { data: room } = await supabase
+    const { data: room, error: roomError } = await supabase
       .from('rooms')
       .select('*, room_players(*)')
       .eq('invite_code', code.toUpperCase())
       .eq('status', 'waiting')
       .single()
 
-    if (!room) {
+    if (!room || roomError) {
       setError('部屋が見つかりません。コードを確認してね')
       setLoading(false)
       return
@@ -38,10 +38,30 @@ export default function JoinRoomScreen({ goal, onMatched, onCancel }) {
       return
     }
 
-    await supabase.from('room_players').insert({
+    const { error: insertError } = await supabase.from('room_players').insert({
       room_id: room.id, player_id: session.user.id,
     })
-    await supabase.from('rooms').update({ status: 'active' }).eq('id', room.id)
+    if (insertError) {
+      setError('参加に失敗しました。もう一度お試しください')
+      setLoading(false)
+      return
+    }
+
+    const { error: updateError } = await supabase
+      .from('rooms')
+      .update({ status: 'active' })
+      .eq('id', room.id)
+      .eq('status', 'waiting')
+
+    if (updateError) {
+      await supabase.from('room_players')
+        .delete()
+        .eq('room_id', room.id)
+        .eq('player_id', session.user.id)
+      setError('部屋の開始に失敗しました。もう一度お試しください')
+      setLoading(false)
+      return
+    }
 
     onMatched({ id: room.id, opponentGoal: room.theme })
     setLoading(false)

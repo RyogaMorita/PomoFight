@@ -16,6 +16,15 @@ const PROFILE_ICONS = {
 }
 const PROFILE_ICON_KEYS = ['bear', 'cat', 'dog']
 
+const STATUS_BADGES = [
+  { id: 'seed', emoji: '🌱', label: '集中の種', cond: () => true },
+  { id: 'flame', emoji: '🔥', label: '集中燃焼', cond: p => p.total_pomodoros >= 10 },
+  { id: 'sword', emoji: '⚔️', label: '初陣', cond: p => p.wins >= 1 },
+  { id: 'gold', emoji: '🏅', label: '勝ち星', cond: p => p.wins >= 10 },
+  { id: 'tree', emoji: '🌳', label: '集中の木', cond: p => p.total_pomodoros >= 50 },
+  { id: 'crown', emoji: '👑', label: '王者', cond: p => p.wins >= 50 || p.rank >= 1500 },
+]
+
 // ── ランクティア ─────────────────────────────────────────────
 const TIERS = [
   { min: 2000, label: 'LEGEND',  emoji: '👑', color: '#ff6b35' },
@@ -61,7 +70,7 @@ const ACHIEVEMENTS = [
 ]
 
 export default function ProfileScreen() {
-  const { profile, linkEmail, updateProfileIcon } = useAuth()
+  const { profile, linkEmail, updateProfileIcon, updateStatusBadge } = useAuth()
   const [showBackup, setShowBackup]       = useState(false)
   const [showIconPicker, setShowIconPicker] = useState(false)
 
@@ -81,6 +90,7 @@ export default function ProfileScreen() {
   const winRate  = wins + losses > 0 ? Math.round(wins / (wins + losses) * 100) : 0
   const unlocked = ACHIEVEMENTS.filter(a => a.cond(profile))
   const locked   = ACHIEVEMENTS.filter(a => !a.cond(profile))
+  const selectedBadge = STATUS_BADGES.find(b => b.id === profile.status_badge) ?? STATUS_BADGES[0]
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -130,6 +140,10 @@ export default function ProfileScreen() {
           <Text style={[styles.tierLabel, { color: tier.color }]}>{tier.label}</Text>
           <Text style={[styles.tierRank, { color: tier.color }]}>{profile.rank ?? 0}</Text>
         </View>
+        <View style={styles.statusPreview}>
+          <Text style={styles.statusPreviewEmoji}>{selectedBadge.emoji}</Text>
+          <Text style={styles.statusPreviewText}>{selectedBadge.label}</Text>
+        </View>
       </View>
 
       {/* ── 統計カード ── */}
@@ -178,6 +192,38 @@ export default function ProfileScreen() {
               <Text style={[styles.badgeDesc, styles.badgeLockedText]}>{a.desc}</Text>
             </View>
           ))}
+        </View>
+      </View>
+
+      {/* ── ステータスバナー ── */}
+      <View style={styles.section}>
+        <View style={styles.sectionTitleRow}>
+          <Icon name="star" size={18} />
+          <Text style={styles.sectionTitle}>ステータスバッジ</Text>
+        </View>
+        <Text style={styles.sectionDesc}>対戦中の上部バナーに表示されます</Text>
+        <View style={styles.statusBadgeGrid}>
+          {STATUS_BADGES.map(badge => {
+            const unlockedBadge = badge.cond(profile)
+            const selected = selectedBadge.id === badge.id
+            return (
+              <TouchableOpacity
+                key={badge.id}
+                style={[
+                  styles.statusBadgeOption,
+                  selected && styles.statusBadgeOptionSelected,
+                  !unlockedBadge && styles.statusBadgeOptionLocked,
+                ]}
+                onPress={() => unlockedBadge && updateStatusBadge(badge.id)}
+                disabled={!unlockedBadge}
+              >
+                <Text style={styles.statusBadgeEmoji}>{unlockedBadge ? badge.emoji : '🔒'}</Text>
+                <Text style={[styles.statusBadgeLabel, !unlockedBadge && styles.badgeLockedText]}>
+                  {badge.label}
+                </Text>
+              </TouchableOpacity>
+            )
+          })}
         </View>
       </View>
 
@@ -303,6 +349,18 @@ const styles = StyleSheet.create({
   tierEmoji: { fontSize: 14 },
   tierLabel: { fontSize: 12, fontWeight: '800', letterSpacing: 0.5 },
   tierRank:  { fontSize: 13, fontWeight: '700' },
+  statusPreview: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    marginTop: 10,
+    backgroundColor: colors.cardSub,
+    borderRadius: radius.full,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  statusPreviewEmoji: { fontSize: 15 },
+  statusPreviewText: { fontSize: 12, color: colors.textSub, fontWeight: '800' },
 
   // 統計
   statsRow: {
@@ -344,6 +402,37 @@ const styles = StyleSheet.create({
   badgeLabel:      { fontSize: 11, fontWeight: '700', color: colors.text, textAlign: 'center' },
   badgeDesc:       { fontSize: 9, color: colors.textSub, textAlign: 'center' },
   badgeLockedText: { color: colors.textLight },
+
+  statusBadgeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 10,
+  },
+  statusBadgeOption: {
+    width: '30%',
+    backgroundColor: colors.cardSub,
+    borderRadius: radius.md,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  statusBadgeOptionSelected: {
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
+  },
+  statusBadgeOptionLocked: {
+    opacity: 0.45,
+  },
+  statusBadgeEmoji: { fontSize: 24, marginBottom: 4 },
+  statusBadgeLabel: {
+    fontSize: 10,
+    color: colors.text,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
 
   // バックアップ
   backupBtn: {

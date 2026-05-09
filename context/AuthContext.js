@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { isSupabaseConfigured, supabase, supabaseConfigError } from '../lib/supabase'
 import { getExpoPushToken, requestNotificationPermission } from '../lib/notifications'
 
 const AuthContext = createContext({})
@@ -8,12 +8,18 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [onlineCount, setOnlineCount] = useState(1)
+  const presenceChannel = useRef(null)
 
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setLoading(false)
+      return
+    }
+
     init()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log('Auth state changed:', _event, session?.user?.id)
       setSession(session)
       if (session) {
         fetchProfile(session.user.id)
@@ -25,10 +31,35 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [])
 
+  useEffect(() => {
+    if (!session?.user?.id || !profile) return
+
+    const channel = supabase.channel('online-users')
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState()
+        const count = Object.values(state).reduce((sum, users) => sum + users.length, 0)
+        setOnlineCount(Math.max(1, count))
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({
+            userId: session.user.id,
+            username: profile.username,
+            at: Date.now(),
+          })
+        }
+      })
+
+    presenceChannel.current = channel
+    return () => {
+      presenceChannel.current?.unsubscribe()
+      presenceChannel.current = null
+    }
+  }, [session?.user?.id, profile?.id])
+
   async function init() {
     try {
       const { data: { session }, error } = await supabase.auth.getSession()
-      console.log('getSession:', session?.user?.id, error)
       if (session) {
         setSession(session)
         await fetchProfile(session.user.id)
@@ -44,7 +75,6 @@ export function AuthProvider({ children }) {
   async function signInAnonymously() {
     try {
       const { data, error } = await supabase.auth.signInAnonymously()
-      console.log('signInAnonymously:', data?.user?.id, error)
       if (error) {
         console.error('Anonymous sign in error:', error)
         setLoading(false)
@@ -63,7 +93,6 @@ export function AuthProvider({ children }) {
         .select('*')
         .eq('id', userId)
         .single()
-      console.log('fetchProfile:', data?.id, error?.code)
       setProfile(data ?? null)
       if (data) savePushToken(userId)
     } catch (e) {
@@ -115,8 +144,17 @@ export function AuthProvider({ children }) {
     if (!error) setProfile(prev => prev ? { ...prev, profile_icon: icon } : prev)
   }
 
+  async function updateStatusBadge(statusBadge) {
+    if (!session) return
+    const { error } = await supabase
+      .from('profiles')
+      .update({ status_badge: statusBadge })
+      .eq('id', session.user.id)
+    if (!error) setProfile(prev => prev ? { ...prev, status_badge: statusBadge } : prev)
+  }
+
   return (
-    <AuthContext.Provider value={{ session, profile, loading, createProfile, linkEmail, fetchProfile, updateHomeTree, updateProfileIcon }}>
+    <AuthContext.Provider value={{ session, profile, loading, onlineCount, configError: supabaseConfigError, createProfile, linkEmail, fetchProfile, updateHomeTree, updateProfileIcon, updateStatusBadge }}>
       {children}
     </AuthContext.Provider>
   )
