@@ -19,6 +19,7 @@ import {
 import { getSettings } from '../../lib/settings'
 import { FishBattleDisplay } from '../FishDisplay'
 import TreeDisplay from '../TreeDisplay'
+import { isHomeFish, homeFishStage } from '../TreePickerModal'
 import { colors, radius, shadow } from '../../lib/theme'
 
 const FACE_DOWN_THRESHOLD = 0.6
@@ -34,14 +35,41 @@ const PROFILE_ICONS = {
   cat:  require('../../assets/profile_icon/cat_icon.png'),
   dog:  require('../../assets/profile_icon/dog_icon.png'),
 }
+const TREE_IMAGES = {
+  1:  require('../../assets/trees/tree_1.png'),
+  2:  require('../../assets/trees/tree_2.png'),
+  3:  require('../../assets/trees/tree_3.png'),
+  4:  require('../../assets/trees/tree_4.png'),
+  5:  require('../../assets/trees/tree_5.png'),
+  6:  require('../../assets/trees/tree_6.png'),
+  7:  require('../../assets/trees/tree_7.png'),
+  8:  require('../../assets/trees/tree_8.png'),
+  9:  require('../../assets/trees/tree_9.png'),
+  10: require('../../assets/trees/tree_10.png'),
+}
+const FISH_IMAGES = {
+  1: require('../../assets/fish/fish_1.png'),
+  2: require('../../assets/fish/fish_2.png'),
+  3: require('../../assets/fish/fish_3.png'),
+  4: require('../../assets/fish/fish_4.png'),
+  5: require('../../assets/fish/fish_5.png'),
+  6: require('../../assets/fish/fish_6.png'),
+}
 
 const STATUS_BADGES = {
-  seed:  { emoji: '🌱', label: '集中の種' },
-  flame: { emoji: '🔥', label: '集中燃焼' },
-  sword: { emoji: '⚔️', label: '初陣' },
-  gold:  { emoji: '🏅', label: '勝ち星' },
-  tree:  { emoji: '🌳', label: '集中の木' },
-  crown: { emoji: '👑', label: '王者' },
+  first_pomo: { emoji: '🌱', label: '初ポモドーロ' },
+  pomo_10:    { emoji: '🌿', label: '10ポモ' },
+  pomo_50:    { emoji: '🌳', label: '50ポモ' },
+  pomo_100:   { emoji: '🌲', label: '100ポモ' },
+  pomo_300:   { emoji: '🌲🌲', label: '300ポモ' },
+  first_win:  { emoji: '⚔️', label: '初勝利' },
+  win_10:     { emoji: '🏅', label: '10勝' },
+  win_50:     { emoji: '🏆', label: '50勝' },
+  win_100:    { emoji: '👑', label: '100勝' },
+  rank_500:   { emoji: '🥈', label: 'シルバー到達' },
+  rank_1000:  { emoji: '🥇', label: 'ゴールド到達' },
+  rank_2000:  { emoji: '💎', label: 'ダイヤ到達' },
+  seed:       { emoji: '🌱', label: '集中の種' },
 }
 
 export default function FightScreen({ room, goal, onFinish }) {
@@ -132,17 +160,15 @@ export default function FightScreen({ room, goal, onFinish }) {
   async function fetchOpponent() {
     const { data } = await supabase
       .from('room_players')
-      .select('player_id, profiles(username, rank, wins, losses, current_goal, profile_icon, status_badge)')
+      .select('player_id, profiles(username, rank, wins, losses, current_goal, profile_icon, status_badge, home_tree)')
       .eq('room_id', room.id)
       .neq('player_id', session.user.id)
 
     if (!data) return
+    setActivePlayers(data.length + 1)
     if (data.length === 1) {
       // 1v1: player_id をprofilesに含めて保存
       setOpponent({ ...data[0].profiles, player_id: data[0].player_id })
-    } else {
-      // 複数人：残り人数モード
-      setActivePlayers(data.length + 1) // 自分含む
     }
   }
 
@@ -334,6 +360,7 @@ export default function FightScreen({ room, goal, onFinish }) {
         wins: profile?.wins ?? 0,
         losses: profile?.losses ?? 0,
         profileIcon: profile?.profile_icon,
+        homeTree: profile?.home_tree,
         statusBadge: profile?.status_badge,
         phase: phaseRef.current,
         isFaceDown: isFaceDownRef.current,
@@ -681,8 +708,12 @@ function compactTime(seconds) {
 }
 
 function PlayerBannerCard({ player, status, side = 'left', accent = colors.primary, isMe = false }) {
-  const icon = PROFILE_ICONS[player?.profile_icon || player?.profileIcon] || PROFILE_ICONS.bear
-  const badge = STATUS_BADGES[player?.status_badge || player?.statusBadge] || STATUS_BADGES.seed
+  const iconKey = player?.profile_icon || player?.profileIcon
+  const homeTree = player?.home_tree ?? player?.homeTree ?? 1
+  const icon = iconKey === 'home'
+    ? (isHomeFish(homeTree) ? FISH_IMAGES[homeFishStage(homeTree)] : TREE_IMAGES[homeTree])
+    : (PROFILE_ICONS[iconKey] || PROFILE_ICONS.bear)
+  const badge = STATUS_BADGES[player?.status_badge || player?.statusBadge] || STATUS_BADGES.first_pomo
   const wins = player?.wins ?? 0
   const losses = player?.losses ?? 0
   const rank = player?.rank ?? 0
@@ -716,6 +747,7 @@ function BattleStatusBanner({ me, opponent, opponentStatus, myStatus, activePlay
         wins: opponentStatus.wins ?? opponent?.wins,
         losses: opponentStatus.losses ?? opponent?.losses,
         profileIcon: opponentStatus.profileIcon,
+        homeTree: opponentStatus.homeTree,
         statusBadge: opponentStatus.statusBadge,
       }
     : opponent
@@ -765,10 +797,10 @@ function BreakLogScreen({ breakLeft, isBreak, onSkip, onSubmit, opponentBreakLog
   async function handleSubmit() {
     if (!focusScore || submitted) return
     setLoading(true)
-    if (!room.isTest) {
+    {
       await supabase.from('pomodoro_logs').insert({
         user_id: session.user.id,
-        room_id: room.id,
+        room_id: room.isTest ? null : room.id,
         log_text: log.trim() || goal,
         focus_score: focusScore,
         duration_minutes: 25,
@@ -1009,9 +1041,12 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   bannerVs: {
-    marginTop: 84,
+    position: 'absolute',
+    top: 26,
+    left: '46%',
+    zIndex: 150,
     color: '#fff',
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '900',
     textShadowColor: 'rgba(0,0,0,0.25)',
     textShadowOffset: { width: 0, height: 2 },
@@ -1019,8 +1054,9 @@ const styles = StyleSheet.create({
   },
   bannerCount: {
     position: 'absolute',
-    top: 118,
+    top: 112,
     right: 0,
+    zIndex: 151,
     backgroundColor: colors.accent,
     borderRadius: radius.full,
     paddingVertical: 4,

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  View, Text, StyleSheet, ScrollView, ActivityIndicator, useWindowDimensions
+  View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity
 } from 'react-native'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
@@ -158,6 +158,9 @@ export default function DiaryScreen() {
   const { session } = useAuth()
   const [logs, setLogs]       = useState([])
   const [loading, setLoading] = useState(true)
+  const [periodFilter, setPeriodFilter] = useState('all')
+  const [focusFilter, setFocusFilter]   = useState('all')
+  const [sortOrder, setSortOrder]       = useState('newest')
 
   useEffect(() => { fetchLogs() }, [])
 
@@ -193,7 +196,35 @@ export default function DiaryScreen() {
     ? Math.round(todayLogs.reduce((s, l) => s + (l.focus_score || 3), 0) / todayLogs.length)
     : null
 
-  const grouped = groupByDate(logs)
+  function applyFilters(source) {
+    const now = new Date()
+    const from = new Date(now)
+    if (periodFilter === 'today') from.setHours(0, 0, 0, 0)
+    if (periodFilter === 'week') from.setDate(now.getDate() - 7)
+    if (periodFilter === 'month') from.setMonth(now.getMonth() - 1)
+
+    return source
+      .filter(log => {
+        if (periodFilter === 'all') return true
+        return new Date(log.created_at) >= from
+      })
+      .filter(log => {
+        if (focusFilter === 'all') return true
+        const score = log.focus_score || 3
+        if (focusFilter === 'high') return score >= 4
+        if (focusFilter === 'mid') return score === 3
+        return score <= 2
+      })
+      .sort((a, b) => {
+        if (sortOrder === 'oldest') return new Date(a.created_at) - new Date(b.created_at)
+        if (sortOrder === 'focusHigh') return (b.focus_score || 3) - (a.focus_score || 3)
+        if (sortOrder === 'focusLow') return (a.focus_score || 3) - (b.focus_score || 3)
+        return new Date(b.created_at) - new Date(a.created_at)
+      })
+  }
+
+  const visibleLogs = applyFilters(logs)
+  const grouped = groupByDate(visibleLogs)
 
   return (
     <View style={styles.container}>
@@ -254,11 +285,48 @@ export default function DiaryScreen() {
         {/* ── ヒートマップ ── */}
         <Heatmap logs={logs} />
 
+        {/* ── 絞り込み・並び替え ── */}
+        <View style={styles.filterCard}>
+          <Text style={styles.filterTitle}>絞り込み</Text>
+          <FilterRow
+            options={[
+              { key: 'all', label: '全期間' },
+              { key: 'today', label: '今日' },
+              { key: 'week', label: '7日' },
+              { key: 'month', label: '30日' },
+            ]}
+            value={periodFilter}
+            onChange={setPeriodFilter}
+          />
+          <FilterRow
+            options={[
+              { key: 'all', label: '集中度すべて' },
+              { key: 'high', label: '高い' },
+              { key: 'mid', label: '普通' },
+              { key: 'low', label: '低い' },
+            ]}
+            value={focusFilter}
+            onChange={setFocusFilter}
+          />
+          <Text style={styles.filterTitle}>並び替え</Text>
+          <FilterRow
+            options={[
+              { key: 'newest', label: '新しい順' },
+              { key: 'oldest', label: '古い順' },
+              { key: 'focusHigh', label: '集中度高' },
+              { key: 'focusLow', label: '集中度低' },
+            ]}
+            value={sortOrder}
+            onChange={setSortOrder}
+          />
+          <Text style={styles.filterCount}>{visibleLogs.length}件表示</Text>
+        </View>
+
         {/* ── ログ一覧 ── */}
-        {logs.length === 0 ? (
+        {visibleLogs.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyEmoji}>🌱</Text>
-            <Text style={styles.emptyText}>まだ記録がありません{'\n'}バトルを始めよう！</Text>
+            <Text style={styles.emptyText}>条件に合う記録がありません</Text>
           </View>
         ) : (
           Object.entries(grouped).map(([date, dayLogs]) => (
@@ -297,6 +365,24 @@ export default function DiaryScreen() {
 
         <View style={{ height: 20 }} />
       </ScrollView>
+    </View>
+  )
+}
+
+function FilterRow({ options, value, onChange }) {
+  return (
+    <View style={styles.filterRow}>
+      {options.map(option => (
+        <TouchableOpacity
+          key={option.key}
+          style={[styles.filterChip, value === option.key && styles.filterChipActive]}
+          onPress={() => onChange(option.key)}
+        >
+          <Text style={[styles.filterChipText, value === option.key && styles.filterChipTextActive]}>
+            {option.label}
+          </Text>
+        </TouchableOpacity>
+      ))}
     </View>
   )
 }
@@ -370,6 +456,53 @@ const styles = StyleSheet.create({
   },
   hmLegendLabel: { fontSize: 9, color: colors.textLight },
   hmLegendCell:  { width: 12, height: 12, borderRadius: 2 },
+
+  // フィルター
+  filterCard: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    padding: 14,
+    marginBottom: 16,
+    ...shadow,
+  },
+  filterTitle: {
+    fontSize: 12,
+    color: colors.textLight,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  filterChip: {
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    borderRadius: radius.full,
+    backgroundColor: colors.cardSub,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  filterChipText: {
+    fontSize: 12,
+    color: colors.textSub,
+    fontWeight: '700',
+  },
+  filterChipTextActive: {
+    color: '#fff',
+  },
+  filterCount: {
+    fontSize: 11,
+    color: colors.textLight,
+    fontWeight: '700',
+    textAlign: 'right',
+  },
 
   // ログ一覧
   dateHeaderRow: {

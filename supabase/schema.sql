@@ -13,7 +13,7 @@ create table if not exists public.profiles (
   current_goal text,
   home_tree integer not null default 1,
   profile_icon text,
-  status_badge text not null default 'seed',
+  status_badge text not null default 'first_pomo',
   push_token text,
   win_streak integer not null default 0,
   last_win_date date,

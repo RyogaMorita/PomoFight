@@ -7,6 +7,7 @@ import {
 import Icon from '../../components/Icon'
 import { useAuth } from '../../context/AuthContext'
 import FriendSection from '../../components/FriendSection'
+import { isHomeFish, homeFishStage } from '../../components/TreePickerModal'
 import { colors, radius, shadow } from '../../lib/theme'
 
 const PROFILE_ICONS = {
@@ -15,15 +16,34 @@ const PROFILE_ICONS = {
   dog:  require('../../assets/profile_icon/dog_icon.png'),
 }
 const PROFILE_ICON_KEYS = ['bear', 'cat', 'dog']
+const TREE_IMAGES = {
+  1:  require('../../assets/trees/tree_1.png'),
+  2:  require('../../assets/trees/tree_2.png'),
+  3:  require('../../assets/trees/tree_3.png'),
+  4:  require('../../assets/trees/tree_4.png'),
+  5:  require('../../assets/trees/tree_5.png'),
+  6:  require('../../assets/trees/tree_6.png'),
+  7:  require('../../assets/trees/tree_7.png'),
+  8:  require('../../assets/trees/tree_8.png'),
+  9:  require('../../assets/trees/tree_9.png'),
+  10: require('../../assets/trees/tree_10.png'),
+}
+const FISH_IMAGES = {
+  1: require('../../assets/fish/fish_1.png'),
+  2: require('../../assets/fish/fish_2.png'),
+  3: require('../../assets/fish/fish_3.png'),
+  4: require('../../assets/fish/fish_4.png'),
+  5: require('../../assets/fish/fish_5.png'),
+  6: require('../../assets/fish/fish_6.png'),
+}
 
-const STATUS_BADGES = [
-  { id: 'seed', emoji: '🌱', label: '集中の種', cond: () => true },
-  { id: 'flame', emoji: '🔥', label: '集中燃焼', cond: p => p.total_pomodoros >= 10 },
-  { id: 'sword', emoji: '⚔️', label: '初陣', cond: p => p.wins >= 1 },
-  { id: 'gold', emoji: '🏅', label: '勝ち星', cond: p => p.wins >= 10 },
-  { id: 'tree', emoji: '🌳', label: '集中の木', cond: p => p.total_pomodoros >= 50 },
-  { id: 'crown', emoji: '👑', label: '王者', cond: p => p.wins >= 50 || p.rank >= 1500 },
-]
+function profileIconSource(profile, key = profile?.profile_icon) {
+  if (key === 'home') {
+    const homeTree = profile?.home_tree ?? 1
+    return isHomeFish(homeTree) ? FISH_IMAGES[homeFishStage(homeTree)] : TREE_IMAGES[homeTree]
+  }
+  return PROFILE_ICONS[key]
+}
 
 // ── ランクティア ─────────────────────────────────────────────
 const TIERS = [
@@ -68,6 +88,7 @@ const ACHIEVEMENTS = [
   { id: 'rank_1000',   emoji: '🥇',  label: 'ゴールド到達',  desc: 'ランク1000以上',     cond: p => p.rank >= 1000 },
   { id: 'rank_2000',   emoji: '💎',  label: 'ダイヤ到達',    desc: 'ランク2000以上',     cond: p => p.rank >= 2000 },
 ]
+const STATUS_BADGES = ACHIEVEMENTS
 
 export default function ProfileScreen() {
   const { profile, linkEmail, updateProfileIcon, updateStatusBadge } = useAuth()
@@ -90,7 +111,7 @@ export default function ProfileScreen() {
   const winRate  = wins + losses > 0 ? Math.round(wins / (wins + losses) * 100) : 0
   const unlocked = ACHIEVEMENTS.filter(a => a.cond(profile))
   const locked   = ACHIEVEMENTS.filter(a => !a.cond(profile))
-  const selectedBadge = STATUS_BADGES.find(b => b.id === profile.status_badge) ?? STATUS_BADGES[0]
+  const selectedBadge = STATUS_BADGES.find(b => b.id === profile.status_badge) ?? unlocked[0] ?? STATUS_BADGES[0]
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -109,6 +130,13 @@ export default function ProfileScreen() {
           <View style={styles.iconPickerBox}>
             <Text style={styles.iconPickerTitle}>アイコンを選ぶ</Text>
             <View style={styles.iconPickerRow}>
+              <TouchableOpacity
+                style={[styles.iconOption, profile.profile_icon === 'home' && styles.iconOptionSelected]}
+                onPress={() => { updateProfileIcon('home'); setShowIconPicker(false) }}
+              >
+                <Image source={profileIconSource(profile, 'home')} style={styles.iconOptionImage} resizeMode="contain" />
+                <Text style={styles.iconOptionLabel}>ホーム</Text>
+              </TouchableOpacity>
               {PROFILE_ICON_KEYS.map(key => (
                 <TouchableOpacity
                   key={key}
@@ -126,8 +154,8 @@ export default function ProfileScreen() {
       {/* ── プロフィールカード ── */}
       <View style={styles.profileCard}>
         <TouchableOpacity onPress={() => setShowIconPicker(true)} activeOpacity={0.8}>
-          {profile.profile_icon && PROFILE_ICONS[profile.profile_icon]
-            ? <Image source={PROFILE_ICONS[profile.profile_icon]} style={[styles.avatarImage, { borderColor: tier.color }]} resizeMode="contain" />
+          {profileIconSource(profile)
+            ? <Image source={profileIconSource(profile)} style={[styles.avatarImage, { borderColor: tier.color }]} resizeMode="contain" />
             : <View style={[styles.avatarPlaceholder, { borderColor: tier.color }]}>
                 <Text style={styles.avatarEditHint}>タップして選択</Text>
               </View>
@@ -232,16 +260,16 @@ export default function ProfileScreen() {
         <FriendSection />
       </View>
 
-      {/* ── アカウントバックアップ ── */}
+      {/* ── 引き継ぎ設定 ── */}
       <View style={styles.section}>
         <View style={styles.sectionTitleRow}>
           <Icon name="lock" size={18} />
-          <Text style={styles.sectionTitle}>アカウントバックアップ</Text>
+          <Text style={styles.sectionTitle}>引き継ぎ設定</Text>
         </View>
-        <Text style={styles.sectionDesc}>メールアドレスを登録するとデータを引き継げます</Text>
+        <Text style={styles.sectionDesc}>メールとパスワードを登録すると、別端末でも同じデータを使えます</Text>
         {!showBackup ? (
           <TouchableOpacity style={styles.backupBtn} onPress={() => setShowBackup(true)}>
-            <Text style={styles.backupBtnText}>📧 メールで登録する</Text>
+            <Text style={styles.backupBtnText}>引き継ぎ用ログインを設定</Text>
           </TouchableOpacity>
         ) : (
           <BackupForm onClose={() => setShowBackup(false)} linkEmail={linkEmail} />
@@ -267,17 +295,17 @@ function BackupForm({ onClose, linkEmail }) {
     const { error } = await linkEmail(email, password)
     setLoading(false)
     if (error) { Alert.alert('エラー', error.message) }
-    else { Alert.alert('完了', 'メールアドレスを確認してください', [{ text: 'OK', onPress: onClose }]) }
+    else { Alert.alert('完了', '確認メールを開くと引き継ぎ設定が完了します', [{ text: 'OK', onPress: onClose }]) }
   }
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.form}>
-        <TextInput style={styles.input} placeholder="メールアドレス" placeholderTextColor={colors.textLight}
+        <TextInput style={styles.input} placeholder="引き継ぎ用メールアドレス" placeholderTextColor={colors.textLight}
           value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-        <TextInput style={styles.input} placeholder="パスワード（6文字以上）" placeholderTextColor={colors.textLight}
+        <TextInput style={styles.input} placeholder="引き継ぎパスワード（6文字以上）" placeholderTextColor={colors.textLight}
           value={password} onChangeText={setPassword} secureTextEntry />
-        <TextInput style={styles.input} placeholder="パスワード（確認）" placeholderTextColor={colors.textLight}
+        <TextInput style={styles.input} placeholder="引き継ぎパスワード（確認）" placeholderTextColor={colors.textLight}
           value={confirm} onChangeText={setConfirm} secureTextEntry />
         <TouchableOpacity style={[styles.submitBtn, loading && { opacity: 0.5 }]} onPress={handleSubmit} disabled={loading}>
           {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>登録する</Text>}
@@ -326,6 +354,7 @@ const styles = StyleSheet.create({
   },
   iconOptionSelected: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
   iconOptionImage:    { width: 56, height: 56 },
+  iconOptionLabel: { fontSize: 9, color: colors.textSub, fontWeight: '800', marginTop: 2 },
 
   avatarImage: {
     width: 88, height: 88, borderRadius: 44,

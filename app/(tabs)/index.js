@@ -156,13 +156,13 @@ export default function HomeScreen({ onBattle, onCreateRoom, onJoinRoom }) {
           <TouchableOpacity style={styles.subButton} onPress={onJoinRoom}>
             <View style={styles.subButtonInner}>
               <Icon name="friends" size={18} />
-              <Text style={styles.subButtonText}>フレンドバトル</Text>
+              <Text style={styles.subButtonText}>フレンドバトル参加</Text>
             </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.subButton} onPress={onCreateRoom}>
             <View style={styles.subButtonInner}>
               <Icon name="door" size={18} />
-              <Text style={styles.subButtonText}>部屋を作る</Text>
+              <Text style={styles.subButtonText}>フレンドバトル募集</Text>
             </View>
           </TouchableOpacity>
         </View>

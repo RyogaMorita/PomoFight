@@ -11,6 +11,25 @@ import { colors, radius, shadow } from '../../lib/theme'
 
 const MAX_PLAYERS_OPTIONS = [2, 3, 4, 6, 8]
 
+function generateCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+}
+
+async function generateUniqueCode() {
+  for (let i = 0; i < 6; i++) {
+    const code = generateCode()
+    const { data } = await supabase
+      .from('rooms')
+      .select('id')
+      .eq('invite_code', code)
+      .eq('status', 'waiting')
+      .maybeSingle()
+    if (!data) return code
+  }
+  throw new Error('招待コードの生成に失敗しました')
+}
+
 export default function FreeMatchScreen({ goal, onJoinRoom, onJoinCode, onCancel }) {
   const { session } = useAuth()
   const [rooms, setRooms]           = useState([])
@@ -113,7 +132,7 @@ export default function FreeMatchScreen({ goal, onJoinRoom, onJoinCode, onCancel
       fetchRooms()
       return
     }
-    onJoinRoom(room)
+    onJoinRoom({ ...room, is_public: true })
   }
 
   const onRefresh = useCallback(() => {
@@ -177,6 +196,7 @@ export default function FreeMatchScreen({ goal, onJoinRoom, onJoinCode, onCancel
             const isFull   = count >= room.max_players
             const players  = room.room_players?.map(p => p.profiles?.username).filter(Boolean)
             const canJoin  = room.status === 'waiting' && !isFull
+            const inviteCode = room.invite_code
             return (
               <View style={[styles.roomCard, isFull && styles.roomCardFull]}>
                 <View style={styles.roomThumb}>
@@ -190,6 +210,9 @@ export default function FreeMatchScreen({ goal, onJoinRoom, onJoinCode, onCancel
                     <Text style={styles.roomMeta}>開始 {Math.max(2, room.max_players ?? 2)}人</Text>
                     <Text style={styles.roomMeta}>参加人数 <Text style={styles.roomMetaHot}>{count}人</Text></Text>
                   </View>
+                  {!!inviteCode && (
+                    <Text style={styles.inviteLine}>ID {inviteCode}</Text>
+                  )}
                   {!!players?.length && (
                     <Text style={styles.roomPlayers} numberOfLines={1}>
                       {players.slice(0, 3).join(', ')}{players.length > 3 ? '...' : ''}
@@ -241,6 +264,14 @@ function CreateRoomModal({ visible, goal, session, onCreated, onClose }) {
   async function createRoom() {
     if (!roomName.trim()) return
     setLoading(true)
+    let inviteCode
+    try {
+      inviteCode = await generateUniqueCode()
+    } catch {
+      Alert.alert('エラー', 'ルームIDの生成に失敗しました')
+      setLoading(false)
+      return
+    }
 
     const { data: room, error } = await supabase
       .from('rooms')
@@ -251,6 +282,7 @@ function CreateRoomModal({ visible, goal, session, onCreated, onClose }) {
         room_name: roomName.trim(),
         max_players: maxPlayers,
         is_public: true,
+        invite_code: inviteCode,
       })
       .select()
       .single()
@@ -431,6 +463,12 @@ const styles = StyleSheet.create({
   roomMeta: { fontSize: 11, color: colors.textSub, fontWeight: '900' },
   roomMetaHot: { color: '#ff8a00' },
   roomPlayers: { fontSize: 10, color: colors.textLight, fontWeight: '700' },
+  inviteLine: {
+    fontSize: 11,
+    color: '#2386dc',
+    fontWeight: '900',
+    marginTop: 2,
+  },
   roomRight:   { alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
   playerCount: { fontSize: 13, fontWeight: '700', color: colors.primary },
   playerCountFull: { color: colors.textLight },

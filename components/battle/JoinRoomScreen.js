@@ -63,7 +63,7 @@ export default function JoinRoomScreen({ goal, onMatched, onCancel }) {
       return
     }
 
-    onMatched({ id: room.id, opponentGoal: room.theme })
+    onMatched(room)
     setLoading(false)
   }
 

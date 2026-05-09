@@ -94,13 +94,24 @@ export default function FinishScreen({ result, room, onBack }) {
     let info   = null
 
     try {
-      if (room?.isTest) {
+      const isUnrated = room?.isTest || room?.is_public || room?.invite_code
+      const oldStage = getTreeStage(profile?.total_pomodoros ?? 0)
+
+      if (isUnrated) {
+        await fetchProfile(session.user.id)
+        const { data: newProfile } = await supabase
+          .from('profiles')
+          .select('total_pomodoros')
+          .eq('id', session.user.id)
+          .single()
+        const newStage = getTreeStage(newProfile?.total_pomodoros ?? 0)
+        if (newStage > oldStage) {
+          setEvolvedStage({ from: oldStage, to: newStage })
+        }
         setLoading(false)
         startAnimations(0, null)
         return
       }
-
-      const oldStage = getTreeStage(profile?.total_pomodoros ?? 0)
 
       const { data } = await supabase.rpc('record_battle_result', {
         p_user_id: session.user.id,

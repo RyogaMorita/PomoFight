@@ -82,7 +82,7 @@ export default function CreateRoomScreen({ goal, onMatched, onCancel }) {
       }, (payload) => {
         if (payload.new.status === 'active') {
           channel.unsubscribe()
-          onMatched({ id: room.id, opponentGoal: null })
+      onMatched(room)
         }
       })
       .subscribe()
