@@ -10,6 +10,8 @@ create table if not exists public.profiles (
   wins integer not null default 0,
   losses integer not null default 0,
   total_pomodoros integer not null default 0,
+  pomo_streak integer not null default 0,
+  last_pomo_date date,
   current_goal text,
   home_tree integer not null default 1,
   profile_icon text,
@@ -30,6 +32,8 @@ create table if not exists public.rooms (
   room_name text,
   max_players integer not null default 2 check (max_players between 2 and 8),
   is_public boolean not null default false,
+  rated boolean not null default false,
+  match_type text not null default 'friend' check (match_type in ('random', 'friend', 'public', 'cpu')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -53,6 +57,8 @@ create table if not exists public.pomodoro_logs (
   log_text text,
   focus_score integer check (focus_score between 1 and 5),
   duration_minutes integer not null default 25,
+  match_type text not null default 'unknown',
+  rated boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -102,13 +108,21 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  today date := timezone('Asia/Tokyo', now())::date;
 begin
   if auth.uid() <> user_id then
     raise exception 'not allowed';
   end if;
 
   update public.profiles
-  set total_pomodoros = total_pomodoros + 1
+  set total_pomodoros = total_pomodoros + 1,
+      pomo_streak = case
+        when last_pomo_date = today then pomo_streak
+        when last_pomo_date = today - 1 then pomo_streak + 1
+        else 1
+      end,
+      last_pomo_date = today
   where id = user_id;
 end;
 $$;

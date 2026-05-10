@@ -114,11 +114,11 @@ export default function MatchingScreen({ goal, onMatched, onCancel }) {
         return
       }
       roomRef.current = waitingRoom.id
-      onMatched({ id: waitingRoom.id, opponentGoal: waitingRoom.theme })
+      onMatched({ ...waitingRoom, rated: true, match_type: 'random' })
     } else {
       const { data: newRoom } = await supabase
         .from('rooms')
-        .insert({ host_id: session.user.id, theme: goal, status: 'waiting' })
+        .insert({ host_id: session.user.id, theme: goal, status: 'waiting', rated: true, match_type: 'random' })
         .select()
         .single()
 
@@ -142,7 +142,7 @@ export default function MatchingScreen({ goal, onMatched, onCancel }) {
             if (payload.new.status === 'active') {
               channelRef.current?.unsubscribe()
               channelRef.current = null
-              onMatched({ id: newRoom.id, opponentGoal: null })
+              onMatched({ ...newRoom, rated: true, match_type: 'random' })
             }
           })
           .subscribe()

@@ -58,9 +58,13 @@ export default function HomeScreen({ onBattle, onCreateRoom, onJoinRoom }) {
   const tier     = getTier(rank)
   const winRate  = wins + losses > 0 ? Math.round(wins / (wins + losses) * 100) : 0
 
-  useEffect(() => { fetchStreak() }, [])
+  useEffect(() => { fetchStreak() }, [profile?.pomo_streak])
 
   async function fetchStreak() {
+    if (profile?.pomo_streak) {
+      setStreak(profile.pomo_streak)
+      return
+    }
     if (!session?.user?.id) return
     const { data } = await supabase
       .from('pomodoro_logs')
@@ -111,7 +115,7 @@ export default function HomeScreen({ onBattle, onCreateRoom, onJoinRoom }) {
         </View>
         <View style={styles.iconButtons}>
           <View style={styles.streakBadge}>
-            <Text style={styles.streakText}>🔥{streak}</Text>
+            <Text style={styles.streakText}>🔥{streak}日目</Text>
           </View>
           <TouchableOpacity style={styles.iconBtn} onPress={() => setShowFriends(true)}>
             <Icon name="friends" size={22} />

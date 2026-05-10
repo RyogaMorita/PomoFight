@@ -54,7 +54,7 @@ export default function CreateRoomScreen({ goal, onMatched, onCancel }) {
 
     const { data: room, error } = await supabase
       .from('rooms')
-      .insert({ host_id: session.user.id, theme: goal, status: 'waiting', invite_code: inviteCode })
+      .insert({ host_id: session.user.id, theme: goal, status: 'waiting', invite_code: inviteCode, rated: false, match_type: 'friend' })
       .select()
       .single()
 

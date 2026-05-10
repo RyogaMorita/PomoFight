@@ -94,7 +94,7 @@ export default function FinishScreen({ result, room, onBack }) {
     let info   = null
 
     try {
-      const isUnrated = room?.isTest || room?.is_public || room?.invite_code
+      const isUnrated = room?.rated === false || room?.isTest || room?.is_public || room?.invite_code
       const oldStage = getTreeStage(profile?.total_pomodoros ?? 0)
 
       if (isUnrated) {

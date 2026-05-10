@@ -10,6 +10,13 @@ import { colors, radius, shadow } from '../../lib/theme'
 const FOCUS_EMOJI  = ['', '😵', '😕', '😐', '😊', '🔥']
 const FOCUS_LABEL  = ['', 'ひどい', '微妙', '普通', '良い', '最高']
 const WEEK_LABELS  = ['日', '月', '火', '水', '木', '金', '土']
+const MATCH_LABELS = {
+  random: 'ランダム',
+  friend: 'フレンド',
+  public: '募集',
+  cpu: 'CPU',
+  unknown: '記録',
+}
 
 function toDateKey(date) {
   return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`
@@ -160,6 +167,7 @@ export default function DiaryScreen() {
   const [loading, setLoading] = useState(true)
   const [periodFilter, setPeriodFilter] = useState('all')
   const [focusFilter, setFocusFilter]   = useState('all')
+  const [matchFilter, setMatchFilter]   = useState('all')
   const [sortOrder, setSortOrder]       = useState('newest')
 
   useEffect(() => { fetchLogs() }, [])
@@ -214,6 +222,10 @@ export default function DiaryScreen() {
         if (focusFilter === 'high') return score >= 4
         if (focusFilter === 'mid') return score === 3
         return score <= 2
+      })
+      .filter(log => {
+        if (matchFilter === 'all') return true
+        return (log.match_type || 'unknown') === matchFilter
       })
       .sort((a, b) => {
         if (sortOrder === 'oldest') return new Date(a.created_at) - new Date(b.created_at)
@@ -308,6 +320,17 @@ export default function DiaryScreen() {
             value={focusFilter}
             onChange={setFocusFilter}
           />
+          <FilterRow
+            options={[
+              { key: 'all', label: '種別すべて' },
+              { key: 'random', label: 'ランダム' },
+              { key: 'friend', label: 'フレンド' },
+              { key: 'public', label: '募集' },
+              { key: 'cpu', label: 'CPU' },
+            ]}
+            value={matchFilter}
+            onChange={setMatchFilter}
+          />
           <Text style={styles.filterTitle}>並び替え</Text>
           <FilterRow
             options={[
@@ -348,6 +371,11 @@ export default function DiaryScreen() {
                   <View style={styles.logBody}>
                     <View style={styles.logMeta}>
                       <Text style={styles.logTime}>{formatTime(log.created_at)}</Text>
+                      <View style={[styles.matchBadge, log.rated && styles.matchBadgeRated]}>
+                        <Text style={[styles.matchBadgeText, log.rated && styles.matchBadgeTextRated]}>
+                          {MATCH_LABELS[log.match_type || 'unknown'] ?? '記録'}・{log.rated ? 'レート' : '非レート'}
+                        </Text>
+                      </View>
                       <View style={styles.logDurationBadge}>
                         <Text style={styles.logDurationNum}>{log.duration_minutes ?? 25}</Text>
                         <Text style={styles.logDurationUnit}>分</Text>
@@ -528,6 +556,26 @@ const styles = StyleSheet.create({
   logBody: { flex: 1, padding: 12 },
   logMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
   logTime: { fontSize: 12, color: colors.textSub, fontWeight: '600' },
+  matchBadge: {
+    backgroundColor: colors.cardSub,
+    borderRadius: radius.full,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  matchBadgeRated: {
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
+  },
+  matchBadgeText: {
+    fontSize: 10,
+    color: colors.textSub,
+    fontWeight: '800',
+  },
+  matchBadgeTextRated: {
+    color: colors.primary,
+  },
   logDurationBadge: {
     flexDirection: 'row', alignItems: 'baseline', gap: 2,
     backgroundColor: colors.primaryLight, borderRadius: radius.full,

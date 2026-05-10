@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext'
 import { colors, radius, shadow } from '../../lib/theme'
 
 const PRESETS = ['勉強', '読書', '仕事', '運動', '資格勉強', 'プログラミング']
-const TEST_ROOM = { id: 'test-room', opponentGoal: '勉強', isTest: true }
+const TEST_ROOM = { id: 'test-room', opponentGoal: '勉強', isTest: true, rated: false, match_type: 'cpu' }
 
 export default function GoalScreen({ onStart, onTestStart, onCreateRoom, onJoinRoom, onFreeMatch }) {
   const { onlineCount } = useAuth()

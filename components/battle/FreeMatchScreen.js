@@ -283,6 +283,8 @@ function CreateRoomModal({ visible, goal, session, onCreated, onClose }) {
         max_players: maxPlayers,
         is_public: true,
         invite_code: inviteCode,
+        rated: false,
+        match_type: 'public',
       })
       .select()
       .single()

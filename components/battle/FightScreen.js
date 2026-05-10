@@ -160,7 +160,7 @@ export default function FightScreen({ room, goal, onFinish }) {
   async function fetchOpponent() {
     const { data } = await supabase
       .from('room_players')
-      .select('player_id, profiles(username, rank, wins, losses, current_goal, profile_icon, status_badge, home_tree)')
+      .select('player_id, profiles(username, rank, wins, losses, current_goal, profile_icon, status_badge, home_tree, pomo_streak)')
       .eq('room_id', room.id)
       .neq('player_id', session.user.id)
 
@@ -359,6 +359,7 @@ export default function FightScreen({ room, goal, onFinish }) {
         rank: profile?.rank ?? 0,
         wins: profile?.wins ?? 0,
         losses: profile?.losses ?? 0,
+        pomoStreak: profile?.pomo_streak ?? 0,
         profileIcon: profile?.profile_icon,
         homeTree: profile?.home_tree,
         statusBadge: profile?.status_badge,
@@ -717,6 +718,7 @@ function PlayerBannerCard({ player, status, side = 'left', accent = colors.prima
   const wins = player?.wins ?? 0
   const losses = player?.losses ?? 0
   const rank = player?.rank ?? 0
+  const pomoStreak = player?.pomo_streak ?? player?.pomoStreak ?? 0
   const time = status?.phase === 'break' ? status?.breakLeft : status?.timeLeft
 
   return (
@@ -729,6 +731,7 @@ function PlayerBannerCard({ player, status, side = 'left', accent = colors.prima
         <View style={styles.bannerBadge}>
           <Text style={styles.bannerBadgeText}>{badge.emoji} {badge.label}</Text>
         </View>
+        <Text style={styles.bannerStreak}>🔥{pomoStreak}日目</Text>
         <View style={[styles.statusPill, { backgroundColor: accent }]}>
           <Text style={styles.statusPillText}>{statusLabel(status)} {compactTime(time)}</Text>
         </View>
@@ -746,6 +749,7 @@ function BattleStatusBanner({ me, opponent, opponentStatus, myStatus, activePlay
         rank: opponentStatus.rank ?? opponent?.rank,
         wins: opponentStatus.wins ?? opponent?.wins,
         losses: opponentStatus.losses ?? opponent?.losses,
+        pomoStreak: opponentStatus.pomoStreak ?? opponent?.pomo_streak,
         profileIcon: opponentStatus.profileIcon,
         homeTree: opponentStatus.homeTree,
         statusBadge: opponentStatus.statusBadge,
@@ -804,6 +808,8 @@ function BreakLogScreen({ breakLeft, isBreak, onSkip, onSubmit, opponentBreakLog
         log_text: log.trim() || goal,
         focus_score: focusScore,
         duration_minutes: 25,
+        match_type: room.match_type ?? (room.isTest ? 'cpu' : room.is_public ? 'public' : room.invite_code ? 'friend' : 'random'),
+        rated: room.rated === true,
       })
       await supabase.rpc('increment_pomodoro', { user_id: session.user.id })
     }
@@ -1027,6 +1033,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 10,
     fontWeight: '900',
+  },
+  bannerStreak: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '900',
+    marginTop: 3,
   },
   statusPill: {
     borderRadius: radius.full,
