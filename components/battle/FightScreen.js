@@ -846,9 +846,11 @@ function BreakLogScreen({ breakLeft, isBreak, onSkip, onSubmit, opponentBreakLog
           <Text style={[styles.timer, styles.breakTimer]}>
             {String(bm).padStart(2, '0')}:{String(bs).padStart(2, '0')}
           </Text>
-          <TouchableOpacity style={styles.skipBreakBtn} onPress={onSkip}>
-            <Text style={styles.skipBreakText}>休憩をスキップ</Text>
-          </TouchableOpacity>
+          {__DEV__ && (
+            <TouchableOpacity style={styles.skipBreakBtn} onPress={onSkip}>
+              <Text style={styles.skipBreakText}>⚡ DEV: 休憩スキップ</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
