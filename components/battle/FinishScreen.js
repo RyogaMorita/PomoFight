@@ -80,6 +80,10 @@ export default function FinishScreen({ result, room, onBack }) {
   const bannerOp     = useRef(new Animated.Value(0)).current
   const hasRecorded  = useRef(false)
 
+  useEffect(() => {
+    return () => { rankCount.removeAllListeners() }
+  }, [])
+
   const message = isWin
     ? WIN_MESSAGES[Math.floor(Math.random() * WIN_MESSAGES.length)]
     : LOSE_MESSAGES[Math.floor(Math.random() * LOSE_MESSAGES.length)]

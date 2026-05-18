@@ -166,8 +166,7 @@ export default function FightScreen({ room, goal, onFinish }) {
 
     if (!data) return
     setActivePlayers(data.length + 1)
-    if (data.length === 1) {
-      // 1v1: player_id をprofilesに含めて保存
+    if (data.length === 1 && data[0].profiles) {
       setOpponent({ ...data[0].profiles, player_id: data[0].player_id })
     }
   }
@@ -435,7 +434,7 @@ export default function FightScreen({ room, goal, onFinish }) {
 
   useEffect(() => {
     broadcastBattleStatus()
-  }, [phase, isFaceDown, timeLeft, breakLeft, pomodoros])
+  }, [phase, isFaceDown, pomodoros])
 
   function startPomodoro() {
     scheduleBattleNotifications(POMODORO_SECONDS, {

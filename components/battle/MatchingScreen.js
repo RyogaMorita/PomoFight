@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { View, Text, Image, TouchableOpacity, StyleSheet, Animated, Easing } from 'react-native'
+import { View, Text, Image, TouchableOpacity, StyleSheet, Animated, Easing, Alert } from 'react-native'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { colors, radius, shadow } from '../../lib/theme'
@@ -100,7 +100,11 @@ export default function MatchingScreen({ goal, onMatched, onCancel }) {
         room_id: waitingRoom.id,
         player_id: session.user.id,
       })
-      if (insertError) return
+      if (insertError) {
+        // 別のユーザーが先に入室した可能性 → 新規部屋を作る
+        startMatching()
+        return
+      }
       const { error: updateError } = await supabase
         .from('rooms')
         .update({ status: 'active' })
@@ -111,6 +115,7 @@ export default function MatchingScreen({ goal, onMatched, onCancel }) {
           .delete()
           .eq('room_id', waitingRoom.id)
           .eq('player_id', session.user.id)
+        startMatching()
         return
       }
       roomRef.current = waitingRoom.id
@@ -130,6 +135,7 @@ export default function MatchingScreen({ goal, onMatched, onCancel }) {
         })
         if (playerError) {
           await supabase.from('rooms').delete().eq('id', newRoom.id)
+          Alert.alert('接続エラー', 'マッチングに失敗しました。もう一度お試しください')
           return
         }
 
