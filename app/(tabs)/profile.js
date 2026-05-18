@@ -9,33 +9,9 @@ import { useAuth } from '../../context/AuthContext'
 import FriendSection from '../../components/FriendSection'
 import { isHomeFish, homeFishStage } from '../../components/TreePickerModal'
 import { colors, radius, shadow } from '../../lib/theme'
+import { TIERS, getTier, PROFILE_ICONS, TREE_IMAGES, FISH_IMAGES } from '../../lib/constants'
 
-const PROFILE_ICONS = {
-  bear: require('../../assets/profile_icon/bear_icon.png'),
-  cat:  require('../../assets/profile_icon/cat_icon.png'),
-  dog:  require('../../assets/profile_icon/dog_icon.png'),
-}
 const PROFILE_ICON_KEYS = ['bear', 'cat', 'dog']
-const TREE_IMAGES = {
-  1:  require('../../assets/trees/tree_1.png'),
-  2:  require('../../assets/trees/tree_2.png'),
-  3:  require('../../assets/trees/tree_3.png'),
-  4:  require('../../assets/trees/tree_4.png'),
-  5:  require('../../assets/trees/tree_5.png'),
-  6:  require('../../assets/trees/tree_6.png'),
-  7:  require('../../assets/trees/tree_7.png'),
-  8:  require('../../assets/trees/tree_8.png'),
-  9:  require('../../assets/trees/tree_9.png'),
-  10: require('../../assets/trees/tree_10.png'),
-}
-const FISH_IMAGES = {
-  1: require('../../assets/fish/fish_1.png'),
-  2: require('../../assets/fish/fish_2.png'),
-  3: require('../../assets/fish/fish_3.png'),
-  4: require('../../assets/fish/fish_4.png'),
-  5: require('../../assets/fish/fish_5.png'),
-  6: require('../../assets/fish/fish_6.png'),
-}
 
 function profileIconSource(profile, key = profile?.profile_icon) {
   if (key === 'home') {
@@ -43,18 +19,6 @@ function profileIconSource(profile, key = profile?.profile_icon) {
     return isHomeFish(homeTree) ? FISH_IMAGES[homeFishStage(homeTree)] : TREE_IMAGES[homeTree]
   }
   return PROFILE_ICONS[key]
-}
-
-// ── ランクティア ─────────────────────────────────────────────
-const TIERS = [
-  { min: 2000, label: 'LEGEND',  emoji: '👑', color: '#ff6b35' },
-  { min: 1500, label: 'DIAMOND', emoji: '💎', color: '#00bcd4' },
-  { min: 1000, label: 'GOLD',    emoji: '🏅', color: colors.gold },
-  { min: 500,  label: 'SILVER',  emoji: '🥈', color: '#90a4ae' },
-  { min: 0,    label: 'BRONZE',  emoji: '🥉', color: '#a1887f' },
-]
-function getTier(rank) {
-  return TIERS.find(t => rank >= t.min) ?? TIERS[TIERS.length - 1]
 }
 
 // ── 称号 ─────────────────────────────────────────────────────

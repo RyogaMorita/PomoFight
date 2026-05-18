@@ -8,7 +8,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { colors, radius, shadow } from '../lib/theme'
 
-export default function FriendSection() {
+export default function FriendSection({ onFriendBattle }) {
   const { session, profile } = useAuth()
   const [friends, setFriends] = useState([])
   const [pending, setPending] = useState([])
@@ -153,7 +153,7 @@ export default function FriendSection() {
                   <Text style={styles.friendName}>{f.profiles.username}</Text>
                   <Text style={styles.friendRank}>Rank {f.profiles.rank}</Text>
                 </View>
-                <TouchableOpacity style={styles.battleBtn}>
+                <TouchableOpacity style={styles.battleBtn} onPress={() => onFriendBattle?.()}>
                   <View style={styles.battleBtnInner}>
                     <Icon name="sword" size={14} />
                     <Text style={styles.battleBtnText}>対戦</Text>

@@ -7,17 +7,7 @@ import Icon from './Icon'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { colors, radius, shadow } from '../lib/theme'
-
-const RANK_TIERS = [
-  { min: 2000, label: '👑 LEGEND', color: '#ff6b35' },
-  { min: 1500, label: '💎 DIAMOND', color: '#00d4ff' },
-  { min: 1000, label: '🏅 GOLD', color: colors.gold },
-  { min: 500,  label: '🥈 SILVER', color: '#a0a0a0' },
-  { min: 0,    label: '🥉 BRONZE', color: '#cd7f32' },
-]
-function getTier(rank) {
-  return RANK_TIERS.find(t => rank >= t.min) ?? RANK_TIERS[RANK_TIERS.length - 1]
-}
+import { getTier } from '../lib/constants'
 
 export default function RankingModal({ visible, onClose }) {
   const { session } = useAuth()
@@ -25,6 +15,7 @@ export default function RankingModal({ visible, onClose }) {
   const [pomoRank, setPomoRank] = useState([])
   const [rateRank, setRateRank] = useState([])
   const [loading, setLoading]   = useState(true)
+  const [error, setError]       = useState(null)
 
   useEffect(() => {
     if (visible) fetchAll()
@@ -32,7 +23,10 @@ export default function RankingModal({ visible, onClose }) {
 
   async function fetchAll() {
     setLoading(true)
-    await Promise.all([fetchPomoRankings(), fetchRateRankings()])
+    setError(null)
+    const results = await Promise.allSettled([fetchPomoRankings(), fetchRateRankings()])
+    const failed = results.find(r => r.status === 'rejected')
+    if (failed) setError('ランキングの読み込みに失敗しました')
     setLoading(false)
   }
 
@@ -40,24 +34,26 @@ export default function RankingModal({ visible, onClose }) {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    const { data: logs } = await supabase
+    const { data: logs, error } = await supabase
       .from('pomodoro_logs')
       .select('user_id')
       .gte('created_at', today.toISOString())
 
+    if (error) throw error
     if (!logs?.length) { setPomoRank([]); return }
 
-    // user_idごとにカウント
     const countMap = {}
     for (const row of logs) {
       countMap[row.user_id] = (countMap[row.user_id] ?? 0) + 1
     }
 
     const userIds = Object.keys(countMap)
-    const { data: profiles } = await supabase
+    const { data: profiles, error: profError } = await supabase
       .from('profiles')
       .select('id, username')
       .in('id', userIds)
+
+    if (profError) throw profError
 
     const result = (profiles ?? []).map(p => ({
       id: p.id, username: p.username, count: countMap[p.id] ?? 0,
@@ -67,11 +63,12 @@ export default function RankingModal({ visible, onClose }) {
   }
 
   async function fetchRateRankings() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('id, username, rank, wins, losses')
       .order('rank', { ascending: false })
       .limit(50)
+    if (error) throw error
     setRateRank(data ?? [])
   }
 
@@ -113,6 +110,13 @@ export default function RankingModal({ visible, onClose }) {
           <View style={styles.center}>
             <ActivityIndicator color={colors.primary} />
           </View>
+        ) : error ? (
+          <View style={styles.center}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={fetchAll}>
+              <Text style={styles.retryText}>再試行</Text>
+            </TouchableOpacity>
+          </View>
         ) : tab === 'pomo' ? (
           <ScrollView contentContainerStyle={styles.list}>
             {pomoRank.length === 0 ? (
@@ -153,7 +157,7 @@ export default function RankingModal({ visible, onClose }) {
                       <Text style={styles.username}>{user.username}</Text>
                       {isMe && <Text style={styles.meTag}>YOU</Text>}
                     </View>
-                    <Text style={[styles.tier, { color: tier.color }]}>{tier.label}</Text>
+                    <Text style={[styles.tier, { color: tier.color }]}>{tier.emoji} {tier.label}</Text>
                   </View>
                   <View style={styles.rankInfo}>
                     <Text style={styles.rankNum}>{user.rank}</Text>
@@ -198,6 +202,12 @@ const styles = StyleSheet.create({
 
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   empty: { textAlign: 'center', color: colors.textLight, marginTop: 40, fontSize: 14 },
+  errorText: { fontSize: 15, color: colors.danger, marginBottom: 16 },
+  retryBtn: {
+    paddingVertical: 10, paddingHorizontal: 24,
+    backgroundColor: colors.primary, borderRadius: 999,
+  },
+  retryText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   list: { padding: 16 },
 
   row: {

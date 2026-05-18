@@ -8,42 +8,9 @@ import FriendModal from '../../components/FriendModal'
 import TreePickerModal, { isHomeFish, homeFishStage } from '../../components/TreePickerModal'
 import { getTreeStage } from '../../components/TreeDisplay'
 import { colors, radius, shadow } from '../../lib/theme'
+import { TIERS, getTier, TREE_IMAGES, FISH_IMAGES } from '../../lib/constants'
 
-const TREE_IMAGES = {
-  1:  require('../../assets/trees/tree_1.png'),
-  2:  require('../../assets/trees/tree_2.png'),
-  3:  require('../../assets/trees/tree_3.png'),
-  4:  require('../../assets/trees/tree_4.png'),
-  5:  require('../../assets/trees/tree_5.png'),
-  6:  require('../../assets/trees/tree_6.png'),
-  7:  require('../../assets/trees/tree_7.png'),
-  8:  require('../../assets/trees/tree_8.png'),
-  9:  require('../../assets/trees/tree_9.png'),
-  10: require('../../assets/trees/tree_10.png'),
-}
-
-const FISH_IMAGES = {
-  1: require('../../assets/fish/fish_1.png'),
-  2: require('../../assets/fish/fish_2.png'),
-  3: require('../../assets/fish/fish_3.png'),
-  4: require('../../assets/fish/fish_4.png'),
-  5: require('../../assets/fish/fish_5.png'),
-  6: require('../../assets/fish/fish_6.png'),
-}
-
-const TIERS = [
-  { min: 2000, label: 'LEGEND',  emoji: '👑', color: '#ff6b35' },
-  { min: 1500, label: 'DIAMOND', emoji: '💎', color: '#00bcd4' },
-  { min: 1000, label: 'GOLD',    emoji: '🏅', color: colors.gold },
-  { min: 500,  label: 'SILVER',  emoji: '🥈', color: '#90a4ae' },
-  { min: 0,    label: 'BRONZE',  emoji: '🥉', color: '#a1887f' },
-]
-
-function getTier(rank) {
-  return TIERS.find(t => rank >= t.min) ?? TIERS[TIERS.length - 1]
-}
-
-export default function HomeScreen({ onBattle, onCreateRoom, onJoinRoom }) {
+export default function HomeScreen({ onBattle, onCreateRoom, onJoinRoom, onFriendBattle }) {
   const { profile, session, updateHomeTree } = useAuth()
   const [showRanking, setShowRanking] = useState(false)
   const [showFriends, setShowFriends] = useState(false)
@@ -94,7 +61,11 @@ export default function HomeScreen({ onBattle, onCreateRoom, onJoinRoom }) {
   return (
     <View style={styles.container}>
       <RankingModal visible={showRanking} onClose={() => setShowRanking(false)} />
-      <FriendModal  visible={showFriends} onClose={() => setShowFriends(false)} />
+      <FriendModal
+        visible={showFriends}
+        onClose={() => setShowFriends(false)}
+        onFriendBattle={() => { setShowFriends(false); onFriendBattle?.() }}
+      />
       <TreePickerModal
         visible={showPicker}
         onClose={() => setShowPicker(false)}

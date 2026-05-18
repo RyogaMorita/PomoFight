@@ -3,7 +3,7 @@ import FriendSection from './FriendSection'
 import Icon from './Icon'
 import { colors, radius } from '../lib/theme'
 
-export default function FriendModal({ visible, onClose }) {
+export default function FriendModal({ visible, onClose, onFriendBattle }) {
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View style={styles.container}>
@@ -17,7 +17,7 @@ export default function FriendModal({ visible, onClose }) {
           </TouchableOpacity>
         </View>
         <View style={styles.body}>
-          <FriendSection />
+          <FriendSection onFriendBattle={onFriendBattle} />
         </View>
       </View>
     </Modal>

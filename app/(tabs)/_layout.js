@@ -31,9 +31,10 @@ export default function TabLayout() {
     switch (activeTab) {
       case 'home':    return (
         <HomeScreen
-          onBattle={()      => goToBattle('goal')}
-          onCreateRoom={()  => goToBattle('create_room')}
-          onJoinRoom={()    => goToBattle('join_room')}
+          onBattle={()        => goToBattle('goal')}
+          onCreateRoom={()    => goToBattle('create_room')}
+          onJoinRoom={()      => goToBattle('join_room')}
+          onFriendBattle={()  => goToBattle('create_room')}
         />
       )
       case 'battle':  return (

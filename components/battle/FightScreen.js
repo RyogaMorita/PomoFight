@@ -21,6 +21,7 @@ import { FishBattleDisplay } from '../FishDisplay'
 import TreeDisplay from '../TreeDisplay'
 import { isHomeFish, homeFishStage } from '../TreePickerModal'
 import { colors, radius, shadow } from '../../lib/theme'
+import { PROFILE_ICONS, TREE_IMAGES, FISH_IMAGES, STATUS_BADGES } from '../../lib/constants'
 
 const FACE_DOWN_THRESHOLD = 0.6
 const LEAVE_GRACE_SECONDS = 10
@@ -29,48 +30,6 @@ const FACEUP_GRACE = 10
 const OFFLINE_GRACE_SECONDS = 10
 
 const BREAK_SECONDS = 5 * 60
-
-const PROFILE_ICONS = {
-  bear: require('../../assets/profile_icon/bear_icon.png'),
-  cat:  require('../../assets/profile_icon/cat_icon.png'),
-  dog:  require('../../assets/profile_icon/dog_icon.png'),
-}
-const TREE_IMAGES = {
-  1:  require('../../assets/trees/tree_1.png'),
-  2:  require('../../assets/trees/tree_2.png'),
-  3:  require('../../assets/trees/tree_3.png'),
-  4:  require('../../assets/trees/tree_4.png'),
-  5:  require('../../assets/trees/tree_5.png'),
-  6:  require('../../assets/trees/tree_6.png'),
-  7:  require('../../assets/trees/tree_7.png'),
-  8:  require('../../assets/trees/tree_8.png'),
-  9:  require('../../assets/trees/tree_9.png'),
-  10: require('../../assets/trees/tree_10.png'),
-}
-const FISH_IMAGES = {
-  1: require('../../assets/fish/fish_1.png'),
-  2: require('../../assets/fish/fish_2.png'),
-  3: require('../../assets/fish/fish_3.png'),
-  4: require('../../assets/fish/fish_4.png'),
-  5: require('../../assets/fish/fish_5.png'),
-  6: require('../../assets/fish/fish_6.png'),
-}
-
-const STATUS_BADGES = {
-  first_pomo: { emoji: '🌱', label: '初ポモドーロ' },
-  pomo_10:    { emoji: '🌿', label: '10ポモ' },
-  pomo_50:    { emoji: '🌳', label: '50ポモ' },
-  pomo_100:   { emoji: '🌲', label: '100ポモ' },
-  pomo_300:   { emoji: '🌲🌲', label: '300ポモ' },
-  first_win:  { emoji: '⚔️', label: '初勝利' },
-  win_10:     { emoji: '🏅', label: '10勝' },
-  win_50:     { emoji: '🏆', label: '50勝' },
-  win_100:    { emoji: '👑', label: '100勝' },
-  rank_500:   { emoji: '🥈', label: 'シルバー到達' },
-  rank_1000:  { emoji: '🥇', label: 'ゴールド到達' },
-  rank_2000:  { emoji: '💎', label: 'ダイヤ到達' },
-  seed:       { emoji: '🌱', label: '集中の種' },
-}
 
 export default function FightScreen({ room, goal, onFinish }) {
   const { session, profile } = useAuth()
