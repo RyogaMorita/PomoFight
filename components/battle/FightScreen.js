@@ -521,7 +521,7 @@ export default function FightScreen({ room, goal, onFinish }) {
           {facedownCount}
         </Text>
         <Text style={styles.goal}>目的: {goal}</Text>
-        {opponent && (
+        {opponents.length <= 1 && opponent && (
           <View style={styles.opponentBox}>
             <Text style={styles.opponentLabel}>対戦相手</Text>
             <Text style={styles.opponentName}>{opponent.username}</Text>

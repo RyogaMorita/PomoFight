@@ -17,12 +17,14 @@ export function AuthProvider({ children }) {
       return
     }
 
-    init()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // INITIAL_SESSION のみで開始（getSession + onAuthStateChange の二重 fetchProfile を防ぐ）
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
+      if (event === 'TOKEN_REFRESHED') return   // トークン更新は再取得不要
       if (session) {
         fetchProfile(session.user.id)
+      } else if (event === 'INITIAL_SESSION') {
+        signInAnonymously()
       } else {
         setLoading(false)
       }

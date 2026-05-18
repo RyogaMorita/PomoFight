@@ -82,7 +82,13 @@ export default function MatchingScreen({ goal, onMatched, onCancel }) {
     return () => cleanup()
   }, [])
 
-  async function startMatching() {
+  async function startMatching(retries = 0) {
+    if (retries >= 3) {
+      Alert.alert('マッチングエラー', '混雑しています。しばらく待ってから再試行してください')
+      cleanup()
+      onCancel()
+      return
+    }
     const { data: waitingRooms } = await supabase
       .from('rooms')
       .select('*, room_players(*)')
@@ -102,7 +108,7 @@ export default function MatchingScreen({ goal, onMatched, onCancel }) {
       })
       if (insertError) {
         // 別のユーザーが先に入室した可能性 → 新規部屋を作る
-        startMatching()
+        startMatching(retries + 1)
         return
       }
       const { error: updateError } = await supabase
@@ -115,7 +121,7 @@ export default function MatchingScreen({ goal, onMatched, onCancel }) {
           .delete()
           .eq('room_id', waitingRoom.id)
           .eq('player_id', session.user.id)
-        startMatching()
+        startMatching(retries + 1)
         return
       }
       roomRef.current = waitingRoom.id

@@ -79,13 +79,23 @@ export default function FriendSection() {
   }
 
   async function acceptFriend(requestId, userId) {
-    await supabase.from('friends').update({ status: 'accepted' }).eq('id', requestId)
-    // 双方向に登録
-    await supabase.from('friends').insert({
+    const { error: updateError } = await supabase
+      .from('friends')
+      .update({ status: 'accepted' })
+      .eq('id', requestId)
+    if (updateError) {
+      Alert.alert('エラー', '承認に失敗しました。もう一度お試しください')
+      return
+    }
+    // 双方向に登録（23505 = 既登録は無視）
+    const { error: insertError } = await supabase.from('friends').insert({
       user_id: session.user.id,
       friend_id: userId,
       status: 'accepted',
     })
+    if (insertError && insertError.code !== '23505') {
+      Alert.alert('エラー', 'フレンド登録に失敗しました。もう一度お試しください')
+    }
     fetchFriends()
   }
 

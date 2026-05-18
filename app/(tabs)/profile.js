@@ -289,6 +289,7 @@ function BackupForm({ onClose, linkEmail }) {
 
   async function handleSubmit() {
     if (!email || !password) { Alert.alert('エラー', 'メールとパスワードを入力してください'); return }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { Alert.alert('エラー', 'メールアドレスの形式が正しくありません'); return }
     if (password !== confirm)  { Alert.alert('エラー', 'パスワードが一致しません'); return }
     if (password.length < 6)   { Alert.alert('エラー', 'パスワードは6文字以上にしてください'); return }
     setLoading(true)
