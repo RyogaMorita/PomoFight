@@ -86,7 +86,9 @@ export default function FightScreen({ room, goal, onFinish }) {
   const [facedownCount, setFacedownCount] = useState(FACEDOWN_LIMIT)
   const [faceupCount, setFaceupCount] = useState(FACEUP_GRACE)
   const [opponent, setOpponent] = useState(null)
+  const [opponents, setOpponents] = useState([])
   const [opponentStatus, setOpponentStatus] = useState(null)
+  const [opponentStatuses, setOpponentStatuses] = useState({})
   const [activePlayers, setActivePlayers] = useState(null)
   const [showReport, setShowReport] = useState(false)
   const [pomodoros, setPomodoros] = useState(0)
@@ -166,8 +168,10 @@ export default function FightScreen({ room, goal, onFinish }) {
 
     if (!data) return
     setActivePlayers(data.length + 1)
-    if (data.length === 1 && data[0].profiles) {
-      setOpponent({ ...data[0].profiles, player_id: data[0].player_id })
+    const withProfile = data.filter(d => d.profiles)
+    setOpponents(withProfile.map(d => ({ ...d.profiles, player_id: d.player_id })))
+    if (withProfile.length >= 1) {
+      setOpponent({ ...withProfile[0].profiles, player_id: withProfile[0].player_id })
     }
   }
 
@@ -228,6 +232,7 @@ export default function FightScreen({ room, goal, onFinish }) {
       .on('broadcast', { event: 'battle_status' }, ({ payload }) => {
         if (payload.userId !== session.user.id) {
           setOpponentStatus(payload)
+          setOpponentStatuses(prev => ({ ...prev, [payload.userId]: payload }))
         }
       })
       .subscribe()
@@ -496,7 +501,9 @@ export default function FightScreen({ room, goal, onFinish }) {
         <BattleStatusBanner
           me={profile}
           opponent={opponent}
+          opponents={opponents}
           opponentStatus={opponentStatus}
+          opponentStatuses={opponentStatuses}
           myStatus={{
             phase,
             isFaceDown,
@@ -534,7 +541,9 @@ export default function FightScreen({ room, goal, onFinish }) {
         onSubmit={broadcastBreakLog}
         opponentBreakLog={opponentBreakLog}
         opponentStatus={opponentStatus}
+        opponentStatuses={opponentStatuses}
         opponent={opponent}
+        opponents={opponents}
         room={room}
         goal={goal}
         onFinish={onFinish}
@@ -587,7 +596,9 @@ export default function FightScreen({ room, goal, onFinish }) {
       <BattleStatusBanner
         me={profile}
         opponent={opponent}
+        opponents={opponents}
         opponentStatus={opponentStatus}
+        opponentStatuses={opponentStatuses}
         myStatus={{
           phase,
           isFaceDown,
@@ -599,7 +610,10 @@ export default function FightScreen({ room, goal, onFinish }) {
         onReport={() => setShowReport(true)}
       />
 
-      <Animated.View style={[styles.treeWrap, { transform: [{ scale: growAnim }] }]}>
+      <Animated.View style={[styles.treeWrap, {
+        transform: [{ scale: growAnim }],
+        marginTop: opponents.length > 1 ? 42 + Math.ceil((opponents.length + 1) / 2) * 70 : 154,
+      }]}>
         {showFish
           ? <FishBattleDisplay totalPomodoros={pomodoros} />
           : <TreeDisplay totalPomodoros={pomodoros} size="large" />
@@ -740,7 +754,54 @@ function PlayerBannerCard({ player, status, side = 'left', accent = colors.prima
   )
 }
 
-function BattleStatusBanner({ me, opponent, opponentStatus, myStatus, activePlayers, onReport }) {
+function MultiPlayerCard({ player, status, isMe = false }) {
+  const iconKey = player?.profile_icon || player?.profileIcon
+  const homeTree = player?.home_tree ?? player?.homeTree ?? 1
+  const icon = iconKey === 'home'
+    ? (isHomeFish(homeTree) ? FISH_IMAGES[homeFishStage(homeTree)] : TREE_IMAGES[homeTree])
+    : (PROFILE_ICONS[iconKey] || PROFILE_ICONS.bear)
+  const accent = isMe ? '#ff5ca8' : '#32d74b'
+  const bg    = isMe ? '#ff6aa9' : '#4de34f'
+  return (
+    <View style={[styles.multiPlayerCard, { borderColor: accent, backgroundColor: bg }]}>
+      <Image source={icon} style={styles.multiPlayerAvatar} resizeMode="contain" />
+      <View style={styles.multiPlayerInfo}>
+        <Text style={styles.multiPlayerName} numberOfLines={1}>
+          {isMe ? 'あなた' : (player?.username ?? '---')}
+        </Text>
+        <Text style={styles.multiPlayerMeta}>R{player?.rank ?? 0}</Text>
+        <View style={[styles.multiStatusPill, { backgroundColor: accent }]}>
+          <Text style={styles.multiStatusText}>{statusLabel(status)}</Text>
+        </View>
+      </View>
+    </View>
+  )
+}
+
+function BattleStatusBanner({ me, opponent, opponents = [], opponentStatus, opponentStatuses = {}, myStatus, activePlayers, onReport }) {
+  if (opponents.length > 1) {
+    const allPlayers = [
+      { player: me, status: myStatus, isMe: true },
+      ...opponents.map(opp => ({
+        player: opp,
+        status: opponentStatuses[opp.player_id] ?? (opp.player_id === opponent?.player_id ? opponentStatus : null),
+        isMe: false,
+      })),
+    ]
+    return (
+      <View style={styles.battleBannerGrid}>
+        {allPlayers.map((item, i) => (
+          <MultiPlayerCard
+            key={item.player?.player_id ?? i}
+            player={item.player}
+            status={item.status}
+            isMe={item.isMe}
+          />
+        ))}
+      </View>
+    )
+  }
+
   const mergedOpponent = opponentStatus
     ? {
         ...opponent,
@@ -787,7 +848,7 @@ const FOCUS_SCORES = [
   { score: 5, label: '🔥', desc: '完璧' },
 ]
 
-function BreakLogScreen({ breakLeft, isBreak, onSkip, onSubmit, opponentBreakLog, opponentStatus, opponent, room, goal, onFinish, session, profile, myStatus }) {
+function BreakLogScreen({ breakLeft, isBreak, onSkip, onSubmit, opponentBreakLog, opponentStatus, opponentStatuses = {}, opponent, opponents = [], room, goal, onFinish, session, profile, myStatus }) {
   const [log, setLog] = useState('')
   const [focusScore, setFocusScore] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -835,7 +896,9 @@ function BreakLogScreen({ breakLeft, isBreak, onSkip, onSubmit, opponentBreakLog
       <BattleStatusBanner
         me={profile}
         opponent={opponent}
+        opponents={opponents}
         opponentStatus={opponentBreakLog ? { ...opponentStatus, phase: 'log_done' } : opponentStatus}
+        opponentStatuses={opponentStatuses}
         myStatus={myStatus}
       />
       {/* 休憩カウントダウン */}
@@ -1203,6 +1266,58 @@ const styles = StyleSheet.create({
   reasonText: { color: colors.text, fontSize: 15 },
   cancelBtn: { padding: 14, alignItems: 'center', marginTop: 4 },
   cancelText: { color: colors.textLight, fontSize: 15 },
+
+  battleBannerGrid: {
+    position: 'absolute',
+    top: 42,
+    left: 10,
+    right: 10,
+    zIndex: 120,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  multiPlayerCard: {
+    width: '48.5%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: radius.md,
+    borderWidth: 2,
+    borderBottomWidth: 4,
+    padding: 8,
+    gap: 6,
+    ...shadow,
+  },
+  multiPlayerAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+  },
+  multiPlayerInfo: { flex: 1 },
+  multiPlayerName: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  multiPlayerMeta: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+    marginTop: 1,
+  },
+  multiStatusPill: {
+    borderRadius: radius.full,
+    paddingVertical: 2,
+    paddingHorizontal: 5,
+    marginTop: 3,
+    alignSelf: 'flex-start',
+  },
+  multiStatusText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '900',
+  },
 
   logBox: { width: '100%', marginBottom: 20 },
   logLabel: { fontSize: 14, color: colors.textSub, marginBottom: 8 },
